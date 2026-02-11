@@ -3,17 +3,23 @@ import { eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { gateways, gatewayStatus } from '@/lib/db/schema';
 import { createGatewaySchema } from '@/lib/validators/gateway';
-import { getSession, requireAuth, getCompanyScope, apiError, apiSuccess } from '@/lib/api-utils';
+import {
+  getSession,
+  requireAuth,
+  resolveCompanyId,
+  getCompanyScope,
+  isAdminOrAbove,
+  isSuper,
+  apiError,
+  apiSuccess,
+} from '@/lib/api-utils';
 
 export async function GET(req: NextRequest) {
   const session = await getSession();
   const authError = requireAuth(session);
   if (authError) return authError;
 
-  const companyId = session!.user.role === 'admin'
-    ? req.nextUrl.searchParams.get('companyId') || getCompanyScope(session)
-    : getCompanyScope(session);
-
+  const companyId = resolveCompanyId(session, req);
   if (!companyId) return apiError('회사 정보가 없습니다', 400);
 
   const search = req.nextUrl.searchParams.get('search')?.toLowerCase().trim() || '';
@@ -73,7 +79,10 @@ export async function POST(req: NextRequest) {
 
   const { gwMac, gwName, companyId, location, description } = parsed.data;
 
-  if (session!.user.role !== 'admin' && companyId !== getCompanyScope(session)) {
+  if (!isAdminOrAbove(session)) {
+    return apiError('관리자 권한이 필요합니다', 403);
+  }
+  if (!isSuper(session) && companyId !== getCompanyScope(session)) {
     return apiError('다른 회사의 게이트웨이를 등록할 수 없습니다', 403);
   }
 

@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { LayoutDashboard, Radio, Tag, LogOut, Building2 } from 'lucide-react';
+import { LayoutDashboard, Radio, Tag, AlertTriangle, LogOut, Building2, CirclePlus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface DashboardShellProps {
@@ -15,17 +15,24 @@ interface DashboardShellProps {
     companyId?: string | null;
     role: string;
   };
+  companyId?: string | null;
   children: React.ReactNode;
 }
 
 const navItems = [
   { href: '/dashboard', label: '대시보드', icon: LayoutDashboard },
+  { href: '/dashboard/register', label: '자산 등록', icon: CirclePlus },
   { href: '/dashboard/gateways', label: '게이트웨이', icon: Radio },
   { href: '/dashboard/tags', label: '태그', icon: Tag },
+  { href: '/dashboard/alerts', label: '알림 설정', icon: AlertTriangle },
 ];
 
-export function DashboardShell({ user, children }: DashboardShellProps) {
+export function DashboardShell({ user, companyId, children }: DashboardShellProps) {
   const pathname = usePathname();
+  const isSuper = user.role === 'super';
+  const effectiveCompanyId = companyId ?? user.companyId;
+  // super: URL에 companyId 노출하지 않음 (쿠키 사용)
+  const linkSuffix = '';
 
   return (
     <div className="flex min-h-screen">
@@ -42,12 +49,13 @@ export function DashboardShell({ user, children }: DashboardShellProps) {
           {/* Navigation */}
           <nav className="flex-1 space-y-1 p-4">
             {navItems.map((item) => {
+              const href = item.href + linkSuffix;
               const isActive = pathname === item.href ||
                 (item.href !== '/dashboard' && pathname.startsWith(item.href));
               return (
                 <Link
                   key={item.href}
-                  href={item.href}
+                  href={href}
                   className={cn(
                     'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors',
                     isActive
@@ -66,13 +74,17 @@ export function DashboardShell({ user, children }: DashboardShellProps) {
           <div className="border-t p-4">
             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
               <Building2 className="h-4 w-4" />
-              <span>{user.companyId || '미소속'}</span>
+              <span>{effectiveCompanyId && effectiveCompanyId !== 'super' ? effectiveCompanyId : '회사 선택'}</span>
             </div>
             <div className="text-sm font-medium truncate mb-1">
               {user.name || user.email}
             </div>
             <div className="text-xs text-muted-foreground mb-3">
-              {user.role === 'admin' ? '관리자' : '사용자'}
+              {user.role === 'super'
+                ? '슈퍼 관리자'
+                : user.role === 'admin'
+                  ? '회사 관리자'
+                  : '사용자'}
             </div>
             <Button
               variant="outline"

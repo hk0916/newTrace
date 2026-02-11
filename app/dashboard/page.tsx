@@ -1,8 +1,10 @@
-import { eq, desc, sql } from 'drizzle-orm';
+import { eq, ne, and, asc, desc, sql } from 'drizzle-orm';
 import { Suspense } from 'react';
+import { cookies } from 'next/headers';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { gateways, gatewayStatus, tags, tagSensingData } from '@/lib/db/schema';
+import { companies, gateways, gatewayStatus, tags, tagSensingData } from '@/lib/db/schema';
+import { COMPANY_COOKIE_NAME } from '@/lib/company-cookie';
 import { StatsCards } from './components/stats-cards';
 import { GatewayTable } from './components/gateway-table';
 import { TagTable } from './components/tag-table';
@@ -21,7 +23,26 @@ export default async function DashboardPage({
   const gwOrder = (params.gwOrder as string) === 'asc' ? 'asc' : 'desc';
 
   const session = await auth();
-  const companyId = session!.user.companyId!;
+  const cookieStore = await cookies();
+  const companyCookie = cookieStore.get(COMPANY_COOKIE_NAME)?.value;
+
+  let companyId: string | null | undefined =
+    session!.user.role === 'super'
+      ? companyCookie || session?.user?.companyId
+      : session!.user.companyId;
+
+  // super가 companyId 없거나 'super'(시스템)이면 → /api/init-company로 리다이렉트 (쿠키 설정)
+  const needRedirectSuper = session!.user.role === 'super' && (!companyId || companyId === 'super');
+  if (needRedirectSuper) {
+    const { redirect } = await import('next/navigation');
+    redirect('/api/init-company');
+  }
+  if (!companyId) {
+    const { redirect } = await import('next/navigation');
+    redirect('/login');
+  }
+
+  const cid = companyId as string;
 
   // 통계 데이터
   const [gwStats] = await db
@@ -30,7 +51,7 @@ export default async function DashboardPage({
       active: sql<number>`count(*) filter (where ${gateways.isActive} = true)`,
     })
     .from(gateways)
-    .where(eq(gateways.companyId, companyId));
+    .where(eq(gateways.companyId, cid));
 
   const [connStats] = await db
     .select({
@@ -38,7 +59,7 @@ export default async function DashboardPage({
     })
     .from(gatewayStatus)
     .innerJoin(gateways, eq(gatewayStatus.gwMac, gateways.gwMac))
-    .where(eq(gateways.companyId, companyId));
+    .where(eq(gateways.companyId, cid));
 
   const [tagStats] = await db
     .select({
@@ -46,7 +67,7 @@ export default async function DashboardPage({
       active: sql<number>`count(*) filter (where ${tags.isActive} = true)`,
     })
     .from(tags)
-    .where(eq(tags.companyId, companyId));
+    .where(eq(tags.companyId, cid));
 
   const stats = {
     gateways: { total: gwStats.total, active: gwStats.active, connected: connStats.connected },
@@ -60,13 +81,15 @@ export default async function DashboardPage({
       gwMac: gateways.gwMac,
       gwName: gateways.gwName,
       location: gateways.location,
+      description: gateways.description,
+      isActive: gateways.isActive,
       isConnected: gatewayStatus.isConnected,
       fwVersion: gatewayStatus.fwVersion,
       lastConnectedAt: gatewayStatus.lastConnectedAt,
     })
     .from(gateways)
     .leftJoin(gatewayStatus, eq(gateways.gwMac, gatewayStatus.gwMac))
-    .where(eq(gateways.companyId, companyId));
+    .where(eq(gateways.companyId, cid));
 
   if (gwSearch) {
     const s = gwSearch.replace(/:/g, '');
@@ -87,7 +110,7 @@ export default async function DashboardPage({
   const tagList = await db
     .select()
     .from(tags)
-    .where(eq(tags.companyId, companyId));
+    .where(eq(tags.companyId, cid));
 
   let tagsWithSensing = await Promise.all(
     tagList.map(async (tag) => {
@@ -103,6 +126,8 @@ export default async function DashboardPage({
         tagName: tag.tagName,
         assetType: tag.assetType,
         assignedGwMac: tag.assignedGwMac,
+        reportInterval: tag.reportInterval,
+        description: tag.description,
         isActive: tag.isActive,
         latestSensing: latest
           ? {
@@ -153,6 +178,7 @@ export default async function DashboardPage({
             ...gw,
             lastConnectedAt: gw.lastConnectedAt?.toISOString() ?? null,
           }))}
+          canEdit={session!.user.role === 'super' || session!.user.role === 'admin'}
         />
       </div>
 
@@ -163,7 +189,11 @@ export default async function DashboardPage({
             <TableFilter prefix="tag" searchPlaceholder="태그 검색 (이름, MAC, 자산유형)" />
           </Suspense>
         </div>
-        <TagTable tags={tagsWithSensing} />
+        <TagTable
+          tags={tagsWithSensing}
+          canEdit={session!.user.role === 'super' || session!.user.role === 'admin'}
+          companyId={cid}
+        />
       </div>
     </div>
   );

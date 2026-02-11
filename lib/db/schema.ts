@@ -75,11 +75,59 @@ export const users = pgTable('users', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
+// 7. 회사별 알림 설정 테이블
+export const alertSettings = pgTable('alert_settings', {
+  companyId: varchar('company_id', { length: 50 }).primaryKey().references(() => companies.id),
+  lowVoltageThreshold: decimal('low_voltage_threshold', { precision: 4, scale: 2 }).default('2.5').notNull(),
+  highTempThreshold: decimal('high_temp_threshold', { precision: 5, scale: 2 }).default('40').notNull(),
+  lowTempThreshold: decimal('low_temp_threshold', { precision: 5, scale: 2 }).default('0').notNull(),
+  enableLowVoltageAlert: boolean('enable_low_voltage_alert').default(true).notNull(),
+  enableHighTempAlert: boolean('enable_high_temp_alert').default(true).notNull(),
+  enableLowTempAlert: boolean('enable_low_temp_alert').default(true).notNull(),
+  tagLastUpdateHours: integer('tag_last_update_hours').default(24).notNull(),
+  gwDisconnectHours: integer('gw_disconnect_hours').default(24).notNull(),
+  enableTagHeartbeatAlert: boolean('enable_tag_heartbeat_alert').default(true).notNull(),
+  enableGwDisconnectAlert: boolean('enable_gw_disconnect_alert').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// 8. 알림 확인 기록 (같은 알림은 다음 로그인까지 울리지 않음)
+export const alertAcknowledgments = pgTable('alert_acknowledgments', {
+  id: varchar('id', { length: 50 }).primaryKey(),
+  userId: varchar('user_id', { length: 50 }).notNull().references(() => users.id),
+  companyId: varchar('company_id', { length: 50 }).notNull().references(() => companies.id),
+  alertType: varchar('alert_type', { length: 50 }).notNull(), // 'tag_stale' | 'gw_disconnected'
+  alertKey: varchar('alert_key', { length: 100 }).notNull(), // tagMac 또는 gwMac
+  sessionIat: integer('session_iat').notNull(), // JWT iat (로그인 시점) - 이 세션에서만 유효
+  acknowledgedAt: timestamp('acknowledged_at').defaultNow().notNull(),
+});
+
 // Relations
-export const companiesRelations = relations(companies, ({ many }) => ({
+export const companiesRelations = relations(companies, ({ one, many }) => ({
   gateways: many(gateways),
   tags: many(tags),
   users: many(users),
+  alertSettings: one(alertSettings),
+  alertAcknowledgments: many(alertAcknowledgments),
+}));
+
+export const alertSettingsRelations = relations(alertSettings, ({ one }) => ({
+  company: one(companies, {
+    fields: [alertSettings.companyId],
+    references: [companies.id],
+  }),
+}));
+
+export const alertAcknowledgmentsRelations = relations(alertAcknowledgments, ({ one }) => ({
+  user: one(users, {
+    fields: [alertAcknowledgments.userId],
+    references: [users.id],
+  }),
+  company: one(companies, {
+    fields: [alertAcknowledgments.companyId],
+    references: [companies.id],
+  }),
 }));
 
 export const gatewaysRelations = relations(gateways, ({ one, many }) => ({

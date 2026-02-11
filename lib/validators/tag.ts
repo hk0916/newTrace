@@ -14,3 +14,14 @@ export const createTagSchema = z.object({
 });
 
 export type CreateTagInput = z.infer<typeof createTagSchema>;
+
+export const updateTagSchema = z.object({
+  tagName: z.string().min(1, '태그 이름을 입력해주세요').max(255),
+  assignedGwMac: z.union([z.string().max(17), z.null()]).optional(),
+  reportInterval: z.number().int().positive('보고 주기는 양수여야 합니다'),
+  assetType: z.string().max(100).optional(),
+  description: z.string().optional(),
+  isActive: z.boolean().optional(),
+});
+
+export type UpdateTagInput = z.infer<typeof updateTagSchema>;

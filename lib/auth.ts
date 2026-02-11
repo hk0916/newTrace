@@ -59,6 +59,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.id = user.id as string;
         token.companyId = user.companyId;
         token.role = user.role;
+        token.iat = Math.floor(Date.now() / 1000); // 로그인 시점, 알림 확인용
       }
       return token;
     },
@@ -66,6 +67,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       session.user.id = token.id;
       session.user.companyId = token.companyId;
       session.user.role = token.role;
+      session.sessionIat = token.iat as number;
       return session;
     },
   },

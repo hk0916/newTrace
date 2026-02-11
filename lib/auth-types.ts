@@ -14,6 +14,7 @@ declare module 'next-auth' {
       companyId?: string | null;
       role: string;
     };
+    sessionIat?: number; // JWT iat (로그인 시점) - 알림 확인 시 세션 구분용
   }
 }
 
@@ -22,5 +23,6 @@ declare module 'next-auth/jwt' {
     id: string;
     companyId?: string | null;
     role: string;
+    iat?: number;
   }
 }

@@ -3,17 +3,23 @@ import { eq, and, desc } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { tags, tagSensingData, gateways } from '@/lib/db/schema';
 import { createTagSchema } from '@/lib/validators/tag';
-import { getSession, requireAuth, getCompanyScope, apiError, apiSuccess } from '@/lib/api-utils';
+import {
+  getSession,
+  requireAuth,
+  resolveCompanyId,
+  getCompanyScope,
+  isAdminOrAbove,
+  isSuper,
+  apiError,
+  apiSuccess,
+} from '@/lib/api-utils';
 
 export async function GET(req: NextRequest) {
   const session = await getSession();
   const authError = requireAuth(session);
   if (authError) return authError;
 
-  const companyId = session!.user.role === 'admin'
-    ? req.nextUrl.searchParams.get('companyId') || getCompanyScope(session)
-    : getCompanyScope(session);
-
+  const companyId = resolveCompanyId(session, req);
   if (!companyId) return apiError('회사 정보가 없습니다', 400);
 
   const gwMacFilter = req.nextUrl.searchParams.get('gwMac');
@@ -78,7 +84,10 @@ export async function POST(req: NextRequest) {
 
   const { tagMac, tagName, companyId, assignedGwMac, reportInterval, assetType, description } = parsed.data;
 
-  if (session!.user.role !== 'admin' && companyId !== getCompanyScope(session)) {
+  if (!isAdminOrAbove(session)) {
+    return apiError('관리자 권한이 필요합니다', 403);
+  }
+  if (!isSuper(session) && companyId !== getCompanyScope(session)) {
     return apiError('다른 회사의 태그를 등록할 수 없습니다', 403);
   }
 

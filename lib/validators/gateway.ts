@@ -12,3 +12,12 @@ export const createGatewaySchema = z.object({
 });
 
 export type CreateGatewayInput = z.infer<typeof createGatewaySchema>;
+
+export const updateGatewaySchema = z.object({
+  gwName: z.string().min(1, '게이트웨이 이름을 입력해주세요').max(255),
+  location: z.string().max(255).optional(),
+  description: z.string().optional(),
+  isActive: z.boolean().optional(),
+});
+
+export type UpdateGatewayInput = z.infer<typeof updateGatewaySchema>;

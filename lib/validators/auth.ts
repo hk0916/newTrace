@@ -10,7 +10,7 @@ export const registerSchema = z.object({
   name: z.string().min(1, '이름을 입력해주세요'),
   password: z.string().min(6, '비밀번호는 6자 이상이어야 합니다'),
   companyId: z.string().min(1, '회사를 선택해주세요'),
-  role: z.enum(['admin', 'user']).default('user'),
+  role: z.enum(['super', 'admin', 'user']).default('user'),
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;

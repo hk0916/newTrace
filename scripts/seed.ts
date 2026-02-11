@@ -3,6 +3,7 @@ dotenv.config({ path: '.env.local' });
 
 import { hash } from 'bcryptjs';
 import { v4 as uuid } from 'uuid';
+import { eq } from 'drizzle-orm';
 
 async function seed() {
   const { db } = await import('../lib/db');
@@ -17,6 +18,13 @@ async function seed() {
   }).onConflictDoNothing();
   console.log('회사 생성 완료: SKAI Chips');
 
+  // 슈퍼 관리자용 시스템 회사 (companyId FK용)
+  await db.insert(companies).values({
+    id: 'super',
+    name: '슈퍼 관리자 (시스템)',
+  }).onConflictDoNothing();
+  console.log('회사 생성 완료: super (시스템)');
+
   // 미등록 게이트웨이용 회사 (자동 등록 시에만 사용)
   await db.insert(companies).values({
     id: 'unregistered',
@@ -24,7 +32,21 @@ async function seed() {
   }).onConflictDoNothing();
   console.log('회사 생성 완료: 미등록 (최초 연결)');
 
-  // 2. 관리자 유저 생성
+  // 2. 슈퍼 관리자 유저 생성 (companyId = super)
+  const superPassword = await hash('eric2789', 12);
+  await db.insert(users).values({
+    id: uuid(),
+    email: 'super@tracetag.com',
+    name: '슈퍼 관리자',
+    password: superPassword,
+    companyId: 'super',
+    role: 'super',
+  }).onConflictDoNothing();
+  // 기존 super 유저가 있으면 companyId 업데이트
+  await db.update(users).set({ companyId: 'super' }).where(eq(users.email, 'super@tracetag.com'));
+  console.log('슈퍼 관리자 생성 완료: super@tracetag.com / eric2789');
+
+  // 3. 회사 관리자 유저 생성
   const adminPassword = await hash('admin123', 12);
   await db.insert(users).values({
     id: uuid(),
@@ -36,7 +58,7 @@ async function seed() {
   }).onConflictDoNothing();
   console.log('관리자 생성 완료: admin@skaichips.com / admin123');
 
-  // 3. 일반 유저 생성
+  // 4. 일반 유저 생성
   const userPassword = await hash('user1234', 12);
   await db.insert(users).values({
     id: uuid(),
@@ -48,7 +70,7 @@ async function seed() {
   }).onConflictDoNothing();
   console.log('사용자 생성 완료: user@skaichips.com / user1234');
 
-  // 4. 샘플 게이트웨이 등록
+  // 5. 샘플 게이트웨이 등록
   const sampleGateways = [
     { gwMac: 'AA:BB:CC:DD:EE:01', gwName: '7층 게이트웨이 01', location: '7층 간호사실' },
     { gwMac: 'AA:BB:CC:DD:EE:02', gwName: '7층 게이트웨이 02', location: '7층 복도' },
@@ -63,7 +85,7 @@ async function seed() {
   }
   console.log(`게이트웨이 ${sampleGateways.length}개 등록 완료`);
 
-  // 5. 샘플 태그 등록
+  // 6. 샘플 태그 등록
   const sampleTags = [
     { tagMac: '11:22:33:44:55:01', tagName: '수액펌프 001', assetType: '의료장비', assignedGwMac: 'AA:BB:CC:DD:EE:01' },
     { tagMac: '11:22:33:44:55:02', tagName: '수액펌프 002', assetType: '의료장비', assignedGwMac: 'AA:BB:CC:DD:EE:01' },
@@ -84,6 +106,7 @@ async function seed() {
   console.log('\n시드 데이터 생성 완료!');
   console.log('---');
   console.log('로그인 정보:');
+  console.log('  슈퍼: super@tracetag.com / eric2789');
   console.log('  관리자: admin@skaichips.com / admin123');
   console.log('  사용자: user@skaichips.com / user1234');
 

@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import { eq, and, desc, gte, lte } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { tags, tagSensingData } from '@/lib/db/schema';
-import { getSession, requireAuth, getCompanyScope, apiError, apiSuccess } from '@/lib/api-utils';
+import { getSession, requireAuth, getCompanyScope, isSuper, apiError, apiSuccess } from '@/lib/api-utils';
 
 export async function GET(
   req: NextRequest,
@@ -19,7 +19,7 @@ export async function GET(
     .select()
     .from(tags)
     .where(
-      session!.user.role === 'admin'
+      isSuper(session)
         ? eq(tags.tagMac, tagMac)
         : and(eq(tags.tagMac, tagMac), eq(tags.companyId, companyId!))
     )

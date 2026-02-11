@@ -7,5 +7,7 @@ export const config = {
     '/api/gateways/:path*',
     '/api/tags/:path*',
     '/api/dashboard/:path*',
+    '/api/register/:path*',
+    '/api/init-company',
   ],
 };
