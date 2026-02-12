@@ -28,6 +28,7 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-tracetag_user}:${POSTGRES_PASSWORD:-tracetag_pass}@postgres:5432/${POSTGRES_DB:-tracetag_dev}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-changeme}
       NEXTAUTH_URL: http://${SERVER_HOST:-localhost}:${WEB_PORT:-3000}
+      AUTH_TRUST_HOST: "true"
     depends_on:
       postgres:
         condition: service_healthy
