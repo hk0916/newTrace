@@ -1,0 +1,15 @@
+node_modules
+.next
+.git
+.gitignore
+.env*
+.claude
+claude-code-tips
+*.md
+LICENSE
+.DS_Store
+.vercel
+coverage
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

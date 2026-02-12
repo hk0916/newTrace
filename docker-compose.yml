@@ -1,0 +1,48 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: tracetag_user
+      POSTGRES_PASSWORD: tracetag_pass
+      POSTGRES_DB: tracetag_dev
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tracetag_user -d tracetag_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  nextjs:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: nextjs
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://tracetag_user:tracetag_pass@postgres:5432/tracetag_dev
+      NEXTAUTH_SECRET: qMEqq3WXZCkNWgK74lCagO9q5xFSvfePpvU8NMaJX1Y=
+      NEXTAUTH_URL: http://localhost:3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  wsserver:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: wsserver
+    ports:
+      - "8080:8080"
+    environment:
+      DATABASE_URL: postgresql://tracetag_user:tracetag_pass@postgres:5432/tracetag_dev
+      WS_PORT: 8080
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
