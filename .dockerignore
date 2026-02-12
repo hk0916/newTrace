@@ -2,14 +2,15 @@ node_modules
 .next
 .git
 .gitignore
-.env*
+.env.local
 .claude
 claude-code-tips
-*.md
+CLAUDE.md
 LICENSE
 .DS_Store
 .vercel
 coverage
+data/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

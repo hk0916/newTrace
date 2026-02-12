@@ -40,7 +40,8 @@ COPY --from=builder /app/package.json ./package.json
 # Copy seed script + its dependencies
 COPY --from=builder /app/scripts ./scripts
 
-# Entrypoint script
+# Deployment manual + entrypoint script
+COPY DEPLOY.md ./DEPLOY.md
 COPY docker-entrypoint.sh ./docker-entrypoint.sh
 RUN chmod +x ./docker-entrypoint.sh
 
