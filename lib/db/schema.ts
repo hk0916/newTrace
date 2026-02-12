@@ -92,7 +92,33 @@ export const alertSettings = pgTable('alert_settings', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// 8. 알림 확인 기록 (같은 알림은 다음 로그인까지 울리지 않음)
+// 8. 자산맵 테이블
+export const assetMaps = pgTable('asset_maps', {
+  id: varchar('id', { length: 50 }).primaryKey(),
+  companyId: varchar('company_id', { length: 50 }).notNull().references(() => companies.id),
+  name: varchar('name', { length: 255 }).notNull(),
+  imagePath: varchar('image_path', { length: 512 }).notNull(),
+  imageWidth: integer('image_width').notNull(),
+  imageHeight: integer('image_height').notNull(),
+  gatewayAreaColor: varchar('gateway_area_color', { length: 20 }).default('amber'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// 9. 자산맵 게이트웨이 배치 테이블
+export const assetMapGateways = pgTable('asset_map_gateways', {
+  id: varchar('id', { length: 50 }).primaryKey(),
+  mapId: varchar('map_id', { length: 50 }).notNull().references(() => assetMaps.id, { onDelete: 'cascade' }),
+  gwMac: varchar('gw_mac', { length: 17 }).notNull().references(() => gateways.gwMac, { onDelete: 'cascade' }),
+  xPercent: decimal('x_percent', { precision: 7, scale: 4 }).notNull(),
+  yPercent: decimal('y_percent', { precision: 7, scale: 4 }).notNull(),
+  widthPercent: decimal('width_percent', { precision: 7, scale: 4 }).notNull().default('10'),
+  heightPercent: decimal('height_percent', { precision: 7, scale: 4 }).notNull().default('8'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// 10. 알림 확인 기록 (같은 알림은 다음 로그인까지 울리지 않음)
 export const alertAcknowledgments = pgTable('alert_acknowledgments', {
   id: varchar('id', { length: 50 }).primaryKey(),
   userId: varchar('user_id', { length: 50 }).notNull().references(() => users.id),
@@ -110,6 +136,7 @@ export const companiesRelations = relations(companies, ({ one, many }) => ({
   users: many(users),
   alertSettings: one(alertSettings),
   alertAcknowledgments: many(alertAcknowledgments),
+  assetMaps: many(assetMaps),
 }));
 
 export const alertSettingsRelations = relations(alertSettings, ({ one }) => ({
@@ -141,6 +168,7 @@ export const gatewaysRelations = relations(gateways, ({ one, many }) => ({
   }),
   tags: many(tags),
   sensingData: many(tagSensingData),
+  assetMapPlacements: many(assetMapGateways),
 }));
 
 export const tagsRelations = relations(tags, ({ one, many }) => ({
@@ -153,4 +181,23 @@ export const tagsRelations = relations(tags, ({ one, many }) => ({
     references: [gateways.gwMac],
   }),
   sensingData: many(tagSensingData),
+}));
+
+export const assetMapsRelations = relations(assetMaps, ({ one, many }) => ({
+  company: one(companies, {
+    fields: [assetMaps.companyId],
+    references: [companies.id],
+  }),
+  placements: many(assetMapGateways),
+}));
+
+export const assetMapGatewaysRelations = relations(assetMapGateways, ({ one }) => ({
+  map: one(assetMaps, {
+    fields: [assetMapGateways.mapId],
+    references: [assetMaps.id],
+  }),
+  gateway: one(gateways, {
+    fields: [assetMapGateways.gwMac],
+    references: [gateways.gwMac],
+  }),
 }));

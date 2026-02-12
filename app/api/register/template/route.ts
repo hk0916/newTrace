@@ -51,10 +51,11 @@ export async function GET() {
 
   const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
 
+  const dateStr = new Date().toISOString().slice(0, 10);
   return new NextResponse(buf, {
     headers: {
       'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'Content-Disposition': `attachment; filename="자산_등록_양식_${new Date().toISOString().slice(0, 10)}.xlsx"`,
+      'Content-Disposition': `attachment; filename="asset_register_template_${dateStr}.xlsx"`,
     },
   });
 }

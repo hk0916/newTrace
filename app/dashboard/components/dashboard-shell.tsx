@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { LayoutDashboard, Radio, Tag, AlertTriangle, LogOut, Building2, CirclePlus } from 'lucide-react';
+import { LayoutDashboard, Radio, Tag, AlertTriangle, LogOut, Building2, CirclePlus, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface DashboardShellProps {
@@ -24,6 +24,7 @@ const navItems = [
   { href: '/dashboard/register', label: '자산 등록', icon: CirclePlus },
   { href: '/dashboard/gateways', label: '게이트웨이', icon: Radio },
   { href: '/dashboard/tags', label: '태그', icon: Tag },
+  { href: '/dashboard/asset-map', label: '자산 맵', icon: MapPin },
   { href: '/dashboard/alerts', label: '알림 설정', icon: AlertTriangle },
 ];
 

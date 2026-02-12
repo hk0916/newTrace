@@ -1,0 +1,1 @@
+ALTER TABLE "asset_maps" ADD COLUMN "gateway_area_color" varchar(20) DEFAULT 'amber';
