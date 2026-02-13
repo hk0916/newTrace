@@ -13,7 +13,9 @@
     "db:studio": "drizzle-kit studio",
     "db:seed": "npx tsx scripts/seed.ts",
     "ws:dev": "npx tsx --watch server/websocket.ts",
-    "ws:start": "npx tsx server/websocket.ts"
+    "ws:start": "npx tsx server/websocket.ts",
+    "dev:all": "concurrently -n dev,ws -c blue,green \"npm run dev\" \"npm run ws:dev\"",
+    "dev:db": "docker compose up postgres -d"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.1",
@@ -45,6 +47,7 @@
     "@types/react-dom": "^19",
     "@types/uuid": "^10.0.0",
     "@types/ws": "^8.18.1",
+    "concurrently": "^9.2.1",
     "drizzle-kit": "^0.31.9",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",

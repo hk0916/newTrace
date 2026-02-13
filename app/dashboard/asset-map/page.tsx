@@ -49,13 +49,17 @@ function AssetMapPageContent() {
   }, [session?.user?.role]);
 
   // fetch map list
+  const [dashboardMapId, setDashboardMapId] = useState<string | null>(null);
+
   const fetchMaps = useCallback(async () => {
     if (!companyId) return;
     const params = new URLSearchParams({ companyId });
     const res = await fetch(`/api/asset-maps?${params.toString()}`);
     if (res.ok) {
       const data = await res.json();
-      setMaps(Array.isArray(data) ? data : []);
+      const list = data?.maps ?? (Array.isArray(data) ? data : []);
+      setMaps(list);
+      setDashboardMapId(data?.dashboardMapId ?? null);
     }
   }, [companyId]);
 
@@ -205,8 +209,20 @@ function AssetMapPageContent() {
         <AssetMapList
           maps={maps}
           canEdit={canEdit}
+          dashboardMapId={dashboardMapId}
           onSelect={handleSelectMap}
           onDelete={handleDeleteMap}
+          onSetDashboard={canEdit ? async (mapId) => {
+            const res = await fetch(`/api/asset-maps/${mapId}/set-dashboard?companyId=${companyId}`, {
+              method: 'POST',
+            });
+            if (res.ok) {
+              setDashboardMapId(mapId);
+            } else {
+              const data = await res.json().catch(() => null);
+              alert(data?.error || '설정에 실패했습니다');
+            }
+          } : undefined}
         />
       )}
     </div>

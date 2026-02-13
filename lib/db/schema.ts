@@ -5,6 +5,7 @@ import { relations } from 'drizzle-orm';
 export const companies = pgTable('companies', {
   id: varchar('id', { length: 50 }).primaryKey(),
   name: varchar('name', { length: 255 }).notNull(),
+  dashboardMapId: varchar('dashboard_map_id', { length: 50 }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -118,6 +119,14 @@ export const assetMapGateways = pgTable('asset_map_gateways', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
+// users relations (companies.users 역방향)
+export const usersRelations = relations(users, ({ one }) => ({
+  company: one(companies, {
+    fields: [users.companyId],
+    references: [companies.id],
+  }),
+}));
+
 // 10. 알림 확인 기록 (같은 알림은 다음 로그인까지 울리지 않음)
 export const alertAcknowledgments = pgTable('alert_acknowledgments', {
   id: varchar('id', { length: 50 }).primaryKey(),
@@ -198,6 +207,24 @@ export const assetMapGatewaysRelations = relations(assetMapGateways, ({ one }) =
   }),
   gateway: one(gateways, {
     fields: [assetMapGateways.gwMac],
+    references: [gateways.gwMac],
+  }),
+}));
+
+export const gatewayStatusRelations = relations(gatewayStatus, ({ one }) => ({
+  gateway: one(gateways, {
+    fields: [gatewayStatus.gwMac],
+    references: [gateways.gwMac],
+  }),
+}));
+
+export const tagSensingDataRelations = relations(tagSensingData, ({ one }) => ({
+  tag: one(tags, {
+    fields: [tagSensingData.tagMac],
+    references: [tags.tagMac],
+  }),
+  gateway: one(gateways, {
+    fields: [tagSensingData.gwMac],
     references: [gateways.gwMac],
   }),
 }));

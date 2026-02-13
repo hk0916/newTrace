@@ -1,0 +1,1 @@
+ALTER TABLE "companies" ADD COLUMN "dashboard_map_id" varchar(50);

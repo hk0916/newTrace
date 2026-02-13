@@ -3,13 +3,14 @@ import { Suspense } from 'react';
 import { cookies } from 'next/headers';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { companies, gateways, gatewayStatus, tags, tagSensingData } from '@/lib/db/schema';
+import { companies, gateways, gatewayStatus, tags, tagSensingData, assetMaps, assetMapGateways } from '@/lib/db/schema';
 import { COMPANY_COOKIE_NAME } from '@/lib/company-cookie';
 import { StatsCards } from './components/stats-cards';
 import { GatewayTable } from './components/gateway-table';
 import { TagTable } from './components/tag-table';
 import { DashboardRefresh } from './components/dashboard-refresh';
 import { TableFilter } from './components/table-filter';
+import { DashboardMapPreview } from './components/dashboard-map-preview';
 
 export default async function DashboardPage({
   searchParams,
@@ -74,6 +75,62 @@ export default async function DashboardPage({
     tags: { total: tagStats.total, active: tagStats.active },
     alerts: { lowVoltage: 0 },
   };
+
+  // 회사별 대시보드 맵 ID
+  const [companyRow] = await db
+    .select({ dashboardMapId: companies.dashboardMapId })
+    .from(companies)
+    .where(eq(companies.id, cid))
+    .limit(1);
+
+  const dashboardMapId = companyRow?.dashboardMapId ?? null;
+
+  // 자산맵 데이터
+  const mapList = await db
+    .select()
+    .from(assetMaps)
+    .where(eq(assetMaps.companyId, cid));
+
+  const mapsWithPlacements = await Promise.all(
+    mapList.map(async (map) => {
+      const placements = await db
+        .select({
+          id: assetMapGateways.id,
+          gwMac: assetMapGateways.gwMac,
+          gwName: gateways.gwName,
+          xPercent: assetMapGateways.xPercent,
+          yPercent: assetMapGateways.yPercent,
+          widthPercent: assetMapGateways.widthPercent,
+          heightPercent: assetMapGateways.heightPercent,
+          isConnected: gatewayStatus.isConnected,
+          tagCount: sql<number>`(SELECT COUNT(*) FROM tags WHERE assigned_gw_mac = ${assetMapGateways.gwMac} AND is_active = true)`.as('tag_count'),
+        })
+        .from(assetMapGateways)
+        .innerJoin(gateways, eq(assetMapGateways.gwMac, gateways.gwMac))
+        .leftJoin(gatewayStatus, eq(assetMapGateways.gwMac, gatewayStatus.gwMac))
+        .where(eq(assetMapGateways.mapId, map.id));
+
+      return {
+        id: map.id,
+        name: map.name,
+        imagePath: map.imagePath,
+        imageWidth: map.imageWidth,
+        imageHeight: map.imageHeight,
+        gatewayAreaColor: map.gatewayAreaColor ?? 'amber',
+        placements: placements.map((p) => ({
+          id: p.id,
+          gwMac: p.gwMac,
+          gwName: p.gwName,
+          xPercent: Number(p.xPercent),
+          yPercent: Number(p.yPercent),
+          widthPercent: Number(p.widthPercent),
+          heightPercent: Number(p.heightPercent),
+          isConnected: p.isConnected ?? false,
+          tagCount: Number(p.tagCount),
+        })),
+      };
+    })
+  );
 
   // 게이트웨이 목록
   let gatewayList = await db
@@ -195,6 +252,13 @@ export default async function DashboardPage({
           companyId={cid}
         />
       </div>
+
+      <DashboardMapPreview
+        maps={mapsWithPlacements}
+        dashboardMapId={dashboardMapId}
+        companyId={cid}
+        canEdit={session!.user.role === 'super' || session!.user.role === 'admin'}
+      />
     </div>
   );
 }
