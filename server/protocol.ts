@@ -44,8 +44,8 @@ export function parseGwInfo(buf: Buffer): GwInfoPayload {
   const riOffset = wsUrlOffset + 1 + wsUrlLen;
   const reportInterval = buf.readUInt32LE(riOffset);
 
-  // RSSI Filter (1 byte, signed)
-  const rssiFilter = buf.readInt8(riOffset + 4);
+  // RSSI Filter (1 byte, unsigned absolute value: 70 → -70 dBm)
+  const rssiFilter = -buf.readUInt8(riOffset + 4);
 
   return { gwMac, hwVersion, fwVersion, otaServerUrl, wsServerUrl, reportInterval, rssiFilter };
 }
@@ -173,13 +173,13 @@ export function buildSetReportInterval(seconds: number): Buffer {
   return buf;
 }
 
-/** RSSI 필터 설정 패킷 생성 (0x06 0x01) - value: int8 */
+/** RSSI 필터 설정 패킷 생성 (0x06 0x01) - 절대값 unsigned byte (e.g. -100 → 0x64) */
 export function buildSetRssiFilter(value: number): Buffer {
   const buf = Buffer.alloc(4 + 1);
   buf[0] = 0x06;
   buf[1] = 0x01;
   buf.writeUInt16BE(1, 2);
-  buf.writeInt8(value, 4);
+  buf.writeUInt8(Math.abs(value), 4);
   return buf;
 }
 
