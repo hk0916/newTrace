@@ -14,7 +14,7 @@ export const updateAssetMapSchema = z.object({
 export type UpdateAssetMapInput = z.infer<typeof updateAssetMapSchema>;
 
 export const upsertMapGatewaySchema = z.object({
-  gwMac: z.string().regex(/^[0-9A-Fa-f]{2}(:[0-9A-Fa-f]{2}){5}$/, 'MAC 주소 형식이 올바르지 않습니다'),
+  gwMac: z.string().regex(/^[0-9A-Fa-f]{12}$/, 'MAC 주소 형식이 올바르지 않습니다'),
   xPercent: z.number().min(0).max(100),
   yPercent: z.number().min(0).max(100),
   widthPercent: z.number().min(1).max(100),
