@@ -91,6 +91,9 @@ async function migrateGateways(pool: mysql.Pool): Promise<number> {
     const location = (row['devicelocation'] as string) || null;
     const isActive = (row['active'] as number) === 1;
 
+    // 혹시 1단계에서 누락된 company가 있으면 자동 생성
+    await db.insert(companies).values({ id: companyId, name: companyId }).onConflictDoNothing();
+
     await db.insert(gateways).values({
       gwMac: mac,
       gwName: name,
@@ -180,6 +183,9 @@ async function migrateTags(pool: mysql.Pool): Promise<number> {
     const name = (row['devicename'] as string) || mac;
     const assetType = (row['devicetype'] as string) || null;
     const isActive = (row['active'] as number) === 1;
+
+    // 혹시 누락된 company가 있으면 자동 생성
+    await db.insert(companies).values({ id: companyId, name: companyId }).onConflictDoNothing();
 
     await db.insert(tags).values({
       tagMac: mac,
