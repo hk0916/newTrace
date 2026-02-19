@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
       imageHeight: assetMaps.imageHeight,
       showOnDashboard: assetMaps.showOnDashboard,
       createdAt: assetMaps.createdAt,
-      gatewayCount: sql<number>`(SELECT COUNT(*) FROM asset_map_gateways WHERE map_id = ${assetMaps.id})`.as('gateway_count'),
+      gatewayCount: sql<number>`(SELECT COUNT(*) FROM asset_map_gateways WHERE map_id = "asset_maps"."id")`.as('gateway_count'),
     })
     .from(assetMaps)
     .where(eq(assetMaps.companyId, companyId))

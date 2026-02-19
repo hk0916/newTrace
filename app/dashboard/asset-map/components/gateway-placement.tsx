@@ -37,6 +37,8 @@ interface GatewayPlacementProps {
   isEditing: boolean;
   /** 선택된 색상 (기본: amber - 파란 배경과 대비) */
   colorPreset?: GatewayAreaColor;
+  /** 보기 모드에서 클릭 시 콜백 */
+  onViewClick?: () => void;
 }
 
 export function GatewayPlacement({
@@ -46,6 +48,7 @@ export function GatewayPlacement({
   onRemove,
   isEditing,
   colorPreset = AVAILABLE_COLORS[0],
+  onViewClick,
 }: GatewayPlacementProps) {
   const isDragging = useRef(false);
 
@@ -156,7 +159,7 @@ export function GatewayPlacement({
     <div
       className={cn(
         'absolute border-2 rounded-sm group transition-shadow select-none',
-        isEditing ? 'cursor-move' : 'cursor-default',
+        isEditing ? 'cursor-move' : (onViewClick ? 'cursor-pointer' : 'cursor-default'),
         colorClass
       )}
       style={{
@@ -168,6 +171,7 @@ export function GatewayPlacement({
       }}
       onMouseDown={startDrag}
       onTouchStart={startDrag}
+      onClick={!isEditing && onViewClick ? (e) => { e.stopPropagation(); onViewClick(); } : undefined}
     >
       {/* Gateway name label */}
       <div className="absolute -top-5 left-0 text-[10px] sm:text-xs font-medium bg-white/90 dark:bg-gray-900/90 px-1 rounded truncate max-w-full whitespace-nowrap shadow-sm">

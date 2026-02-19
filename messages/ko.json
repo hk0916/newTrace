@@ -264,6 +264,8 @@
     "allPlaced": "모든 게이트웨이가 배치되었습니다",
     "dragHint": "게이트웨이를 드래그하여 맵 위에 배치하세요",
     "gwConnected": "연결됨",
-    "gwDisconnected": "연결 끊김"
+    "gwDisconnected": "연결 끊김",
+    "noConnectedTags": "연결된 태그 없음",
+    "noSensingData": "센싱 데이터 없음"
   }
 }

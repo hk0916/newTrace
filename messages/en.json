@@ -264,6 +264,8 @@
     "allPlaced": "All gateways have been placed",
     "dragHint": "Drag gateways onto the map to place them",
     "gwConnected": "Connected",
-    "gwDisconnected": "Disconnected"
+    "gwDisconnected": "Disconnected",
+    "noConnectedTags": "No connected tags",
+    "noSensingData": "No sensing data"
   }
 }

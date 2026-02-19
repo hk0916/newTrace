@@ -160,6 +160,7 @@ function AssetMapPageContent() {
         initialGatewayAreaColor={mapDetail.gatewayAreaColor}
         allGateways={mapDetail.allGateways}
         canEdit={canEdit}
+        companyId={companyId || ''}
         onBack={handleBack}
       />
     );

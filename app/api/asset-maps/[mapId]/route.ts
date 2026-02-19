@@ -39,7 +39,7 @@ export async function GET(
       widthPercent: assetMapGateways.widthPercent,
       heightPercent: assetMapGateways.heightPercent,
       isConnected: gatewayStatus.isConnected,
-      tagCount: sql<number>`(SELECT COUNT(*) FROM tags WHERE assigned_gw_mac = ${assetMapGateways.gwMac} AND is_active = true)`.as('tag_count'),
+      tagCount: sql<number>`(SELECT COUNT(*) FROM tags WHERE assigned_gw_mac = "asset_map_gateways"."gw_mac" AND is_active = true)`.as('tag_count'),
     })
     .from(assetMapGateways)
     .innerJoin(gateways, eq(assetMapGateways.gwMac, gateways.gwMac))
