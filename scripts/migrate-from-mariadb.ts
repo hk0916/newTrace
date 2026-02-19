@@ -52,14 +52,9 @@ async function migrateCompanies(pool: mysql.Pool): Promise<Set<string>> {
 
   const companySet = new Set<string>();
 
-  // 시스템 기본 회사들 (seed에서 생성되지만 중복 방지)
-  const systemCompanies = ['skaichips', 'super', 'unregistered'];
-
   for (const row of rows) {
     const companyId = normalizeCompany(row['company'] as string);
     companySet.add(companyId);
-
-    if (systemCompanies.includes(companyId.toLowerCase())) continue;
 
     await db.insert(companies).values({
       id: companyId,
