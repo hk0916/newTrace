@@ -193,6 +193,14 @@ async function handleTagData(data: Buffer, clientInfo: ClientInfo): Promise<void
     rawData: tagData.rawAdvData,
   });
 
+  // assignedGwMac 자동 갱신: 마지막으로 이 태그를 감지한 게이트웨이로 업데이트
+  if (tag.assignedGwMac !== tagData.gwMac) {
+    await db
+      .update(tags)
+      .set({ assignedGwMac: tagData.gwMac })
+      .where(eq(tags.tagMac, tagData.tagMac));
+  }
+
   console.log(
     `[WS] 태그 데이터: ${tagData.tagMac} via ${tagData.gwMac} | ` +
     `RSSI: ${tagData.rssi}, 온도: ${tagData.temperature}°C, 전압: ${tagData.voltage}V`
