@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 
@@ -9,6 +10,7 @@ const REFRESH_INTERVAL = 30;
 
 export function DashboardRefresh() {
   const router = useRouter();
+  const t = useTranslations('dashboard');
   const [countdown, setCountdown] = useState(REFRESH_INTERVAL);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -37,7 +39,7 @@ export function DashboardRefresh() {
   return (
     <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
       <RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-      새로고침 ({countdown}s)
+      {t('refresh', { countdown })}
     </Button>
   );
 }

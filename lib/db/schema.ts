@@ -12,7 +12,7 @@ export const companies = pgTable('companies', {
 
 // 2. 게이트웨이 마스터 테이블 (자산 등록 정보)
 export const gateways = pgTable('gateways', {
-  gwMac: varchar('gw_mac', { length: 17 }).primaryKey(),
+  gwMac: varchar('gw_mac', { length: 12 }).primaryKey(),
   gwName: varchar('gw_name', { length: 255 }).notNull(),
   companyId: varchar('company_id', { length: 50 }).notNull().references(() => companies.id),
   location: varchar('location', { length: 255 }),
@@ -23,7 +23,7 @@ export const gateways = pgTable('gateways', {
 
 // 3. 게이트웨이 상태 테이블 (실시간 웹소켓 데이터)
 export const gatewayStatus = pgTable('gateway_status', {
-  gwMac: varchar('gw_mac', { length: 17 }).primaryKey().references(() => gateways.gwMac),
+  gwMac: varchar('gw_mac', { length: 12 }).primaryKey().references(() => gateways.gwMac),
   hwVersion: varchar('hw_version', { length: 50 }),
   fwVersion: varchar('fw_version', { length: 50 }),
   otaServerUrl: varchar('ota_server_url', { length: 512 }),
@@ -39,10 +39,10 @@ export const gatewayStatus = pgTable('gateway_status', {
 
 // 4. 태그 마스터 테이블 (자산 등록 정보)
 export const tags = pgTable('tags', {
-  tagMac: varchar('tag_mac', { length: 17 }).primaryKey(),
+  tagMac: varchar('tag_mac', { length: 12 }).primaryKey(),
   tagName: varchar('tag_name', { length: 255 }).notNull(),
   companyId: varchar('company_id', { length: 50 }).notNull().references(() => companies.id),
-  assignedGwMac: varchar('assigned_gw_mac', { length: 17 }).references(() => gateways.gwMac),
+  assignedGwMac: varchar('assigned_gw_mac', { length: 12 }).references(() => gateways.gwMac),
   reportInterval: integer('report_interval').notNull(),
   assetType: varchar('asset_type', { length: 100 }),
   description: text('description'),
@@ -54,8 +54,8 @@ export const tags = pgTable('tags', {
 // 5. 태그 센싱 데이터 테이블 (실시간 BLE 데이터)
 export const tagSensingData = pgTable('tag_sensing_data', {
   id: varchar('id', { length: 50 }).primaryKey(),
-  tagMac: varchar('tag_mac', { length: 17 }).notNull().references(() => tags.tagMac),
-  gwMac: varchar('gw_mac', { length: 17 }).notNull().references(() => gateways.gwMac),
+  tagMac: varchar('tag_mac', { length: 12 }).notNull().references(() => tags.tagMac),
+  gwMac: varchar('gw_mac', { length: 12 }).notNull().references(() => gateways.gwMac),
   sensingTime: timestamp('sensing_time').notNull(),
   receivedTime: timestamp('received_time').defaultNow().notNull(),
   rssi: integer('rssi').notNull(),
@@ -72,6 +72,7 @@ export const users = pgTable('users', {
   password: varchar('password', { length: 255 }),
   companyId: varchar('company_id', { length: 50 }).references(() => companies.id),
   role: varchar('role', { length: 50 }).default('user').notNull(),
+  locale: varchar('locale', { length: 10 }).default('ko').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -102,6 +103,7 @@ export const assetMaps = pgTable('asset_maps', {
   imageWidth: integer('image_width').notNull(),
   imageHeight: integer('image_height').notNull(),
   gatewayAreaColor: varchar('gateway_area_color', { length: 20 }).default('amber'),
+  showOnDashboard: boolean('show_on_dashboard').default(false).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -110,7 +112,7 @@ export const assetMaps = pgTable('asset_maps', {
 export const assetMapGateways = pgTable('asset_map_gateways', {
   id: varchar('id', { length: 50 }).primaryKey(),
   mapId: varchar('map_id', { length: 50 }).notNull().references(() => assetMaps.id, { onDelete: 'cascade' }),
-  gwMac: varchar('gw_mac', { length: 17 }).notNull().references(() => gateways.gwMac, { onDelete: 'cascade' }),
+  gwMac: varchar('gw_mac', { length: 12 }).notNull().references(() => gateways.gwMac, { onDelete: 'cascade' }),
   xPercent: decimal('x_percent', { precision: 7, scale: 4 }).notNull(),
   yPercent: decimal('y_percent', { precision: 7, scale: 4 }).notNull(),
   widthPercent: decimal('width_percent', { precision: 7, scale: 4 }).notNull().default('10'),

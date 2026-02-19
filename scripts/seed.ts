@@ -72,9 +72,9 @@ async function seed() {
 
   // 5. 샘플 게이트웨이 등록
   const sampleGateways = [
-    { gwMac: 'AA:BB:CC:DD:EE:01', gwName: '7층 게이트웨이 01', location: '7층 간호사실' },
-    { gwMac: 'AA:BB:CC:DD:EE:02', gwName: '7층 게이트웨이 02', location: '7층 복도' },
-    { gwMac: 'AA:BB:CC:DD:EE:03', gwName: '8층 게이트웨이 01', location: '8층 간호사실' },
+    { gwMac: 'AABBCCDDEE01', gwName: '7층 게이트웨이 01', location: '7층 간호사실' },
+    { gwMac: 'AABBCCDDEE02', gwName: '7층 게이트웨이 02', location: '7층 복도' },
+    { gwMac: 'AABBCCDDEE03', gwName: '8층 게이트웨이 01', location: '8층 간호사실' },
   ];
 
   for (const gw of sampleGateways) {
@@ -87,11 +87,11 @@ async function seed() {
 
   // 6. 샘플 태그 등록
   const sampleTags = [
-    { tagMac: '11:22:33:44:55:01', tagName: '수액펌프 001', assetType: '의료장비', assignedGwMac: 'AA:BB:CC:DD:EE:01' },
-    { tagMac: '11:22:33:44:55:02', tagName: '수액펌프 002', assetType: '의료장비', assignedGwMac: 'AA:BB:CC:DD:EE:01' },
-    { tagMac: '11:22:33:44:55:03', tagName: '산소포화도 측정기 001', assetType: '의료장비', assignedGwMac: 'AA:BB:CC:DD:EE:02' },
-    { tagMac: '11:22:33:44:55:04', tagName: '휠체어 001', assetType: '비품', assignedGwMac: 'AA:BB:CC:DD:EE:03' },
-    { tagMac: '11:22:33:44:55:05', tagName: '심전도 모니터 001', assetType: '의료장비', assignedGwMac: 'AA:BB:CC:DD:EE:03' },
+    { tagMac: '112233445501', tagName: '수액펌프 001', assetType: '의료장비', assignedGwMac: 'AABBCCDDEE01' },
+    { tagMac: '112233445502', tagName: '수액펌프 002', assetType: '의료장비', assignedGwMac: 'AABBCCDDEE01' },
+    { tagMac: '112233445503', tagName: '산소포화도 측정기 001', assetType: '의료장비', assignedGwMac: 'AABBCCDDEE02' },
+    { tagMac: '112233445504', tagName: '휠체어 001', assetType: '비품', assignedGwMac: 'AABBCCDDEE03' },
+    { tagMac: '112233445505', tagName: '심전도 모니터 001', assetType: '의료장비', assignedGwMac: 'AABBCCDDEE03' },
   ];
 
   for (const tag of sampleTags) {

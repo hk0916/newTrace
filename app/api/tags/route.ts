@@ -53,10 +53,10 @@ export async function GET(req: NextRequest) {
   );
 
   if (search) {
-    const s = search.replace(/:/g, '');
+    const s = search.replace(/[:\-]/g, '').toLowerCase();
     result = result.filter(
       (t) =>
-        t.tagMac.replace(/:/g, '').toLowerCase().includes(s) ||
+        t.tagMac.toLowerCase().includes(s) ||
         t.tagName.toLowerCase().includes(search) ||
         (t.assetType?.toLowerCase().includes(search) ?? false)
     );

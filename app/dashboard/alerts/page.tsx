@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+import { useTranslations, useLocale } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -42,6 +43,9 @@ interface AlertSettings {
 export default function AlertsPage() {
   const { data: session } = useSession();
   const companyIdFromCookie = useCompanyId();
+  const t = useTranslations('alerts');
+  const tCommon = useTranslations('common');
+  const locale = useLocale();
   const [companies, setCompanies] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -164,9 +168,9 @@ export default function AlertsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">알림 설정</h1>
+        <h1 className="text-2xl font-bold">{t('title')}</h1>
         <p className="text-muted-foreground mt-1">
-          회사별로 태그 경고 기준을 설정합니다.
+          {t('description')}
         </p>
       </div>
 
@@ -175,17 +179,17 @@ export default function AlertsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Bell className="h-5 w-5" />
-              현재 알림
+              {t('currentAlerts')}
             </CardTitle>
             <CardDescription>
-              확인한 알림은 다음 로그인까지 다시 표시되지 않습니다.
+              {t('currentAlertsDesc')}
             </CardDescription>
           </CardHeader>
           <CardContent>
             {alertsLoading ? (
-              <p className="text-sm text-muted-foreground">로딩 중...</p>
+              <p className="text-sm text-muted-foreground">{tCommon('loading')}</p>
             ) : alerts.length === 0 ? (
-              <p className="text-sm text-muted-foreground">발생 중인 알림이 없습니다.</p>
+              <p className="text-sm text-muted-foreground">{t('noAlerts')}</p>
             ) : (
               <div className="space-y-3">
                 {alerts.map((a) => (
@@ -197,7 +201,7 @@ export default function AlertsPage() {
                       <p className="font-medium text-sm">{a.title}</p>
                       <p className="text-sm text-muted-foreground truncate">{a.message}</p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        {new Date(a.since).toLocaleString('ko-KR')} 부터
+                        {new Date(a.since).toLocaleString(locale)} {t('since')}
                       </p>
                     </div>
                     <Button
@@ -207,7 +211,7 @@ export default function AlertsPage() {
                       onClick={() => handleAcknowledge([{ type: a.type, key: a.key }])}
                     >
                       <CheckCircle className="h-4 w-4 mr-1" />
-                      확인
+                      {t('acknowledge')}
                     </Button>
                   </div>
                 ))}
@@ -219,7 +223,7 @@ export default function AlertsPage() {
                   }
                 >
                   <CheckCircle className="h-4 w-4 mr-2" />
-                  전체 확인
+                  {t('acknowledgeAll')}
                 </Button>
               </div>
             )}
@@ -231,17 +235,17 @@ export default function AlertsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5" />
-            경고 임계값
+            {t('thresholdTitle')}
           </CardTitle>
           <CardDescription>
-            저전압, 고온, 저온 임계값을 설정하고 각 알림 활성화 여부를 선택하세요.
+            {t('thresholdDesc')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             {isSuper && (
               <div className="space-y-2">
-                <Label htmlFor="company">회사 선택</Label>
+                <Label htmlFor="company">{tCommon('selectCompany')}</Label>
                 <Select
                   value={form.companyId}
                   onValueChange={(v) => {
@@ -250,7 +254,7 @@ export default function AlertsPage() {
                   }}
                 >
                   <SelectTrigger id="company" className="max-w-xs">
-                    <SelectValue placeholder="회사 선택" />
+                    <SelectValue placeholder={tCommon('selectCompany')} />
                   </SelectTrigger>
                   <SelectContent>
                     {companies.map((c) => (
@@ -265,7 +269,7 @@ export default function AlertsPage() {
 
             {!isSuper && form.companyId && (
               <div className="space-y-2">
-                <Label>회사</Label>
+                <Label>{tCommon('company')}</Label>
                 <p className="text-sm font-medium">
                   {companies.find((c) => c.id === form.companyId)?.name || form.companyId}
                 </p>
@@ -274,7 +278,7 @@ export default function AlertsPage() {
 
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               <div className="space-y-4">
-                <h4 className="font-medium">저전압 알림</h4>
+                <h4 className="font-medium">{t('lowVoltage')}</h4>
                 <div className="flex items-center gap-4">
                   <input
                     type="checkbox"
@@ -285,10 +289,10 @@ export default function AlertsPage() {
                     }
                     className="h-4 w-4 rounded border-gray-300"
                   />
-                  <Label htmlFor="enableLowVoltage">활성화</Label>
+                  <Label htmlFor="enableLowVoltage">{tCommon('enabled')}</Label>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="lowVoltage">임계값 (V)</Label>
+                  <Label htmlFor="lowVoltage">{t('thresholdV')}</Label>
                   <Input
                     id="lowVoltage"
                     type="number"
@@ -300,12 +304,12 @@ export default function AlertsPage() {
                       setForm((f) => ({ ...f, lowVoltageThreshold: e.target.value }))
                     }
                   />
-                  <p className="text-xs text-muted-foreground">이 전압 미만이면 경고</p>
+                  <p className="text-xs text-muted-foreground">{t('lowVoltageHint')}</p>
                 </div>
               </div>
 
               <div className="space-y-4">
-                <h4 className="font-medium">고온 알림</h4>
+                <h4 className="font-medium">{t('highTemp')}</h4>
                 <div className="flex items-center gap-4">
                   <input
                     type="checkbox"
@@ -316,10 +320,10 @@ export default function AlertsPage() {
                     }
                     className="h-4 w-4 rounded border-gray-300"
                   />
-                  <Label htmlFor="enableHighTemp">활성화</Label>
+                  <Label htmlFor="enableHighTemp">{tCommon('enabled')}</Label>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="highTemp">임계값 (°C)</Label>
+                  <Label htmlFor="highTemp">{t('thresholdC')}</Label>
                   <Input
                     id="highTemp"
                     type="number"
@@ -331,12 +335,12 @@ export default function AlertsPage() {
                       setForm((f) => ({ ...f, highTempThreshold: e.target.value }))
                     }
                   />
-                  <p className="text-xs text-muted-foreground">이 온도 초과 시 경고</p>
+                  <p className="text-xs text-muted-foreground">{t('highTempHint')}</p>
                 </div>
               </div>
 
               <div className="space-y-4">
-                <h4 className="font-medium">저온 알림</h4>
+                <h4 className="font-medium">{t('lowTemp')}</h4>
                 <div className="flex items-center gap-4">
                   <input
                     type="checkbox"
@@ -347,10 +351,10 @@ export default function AlertsPage() {
                     }
                     className="h-4 w-4 rounded border-gray-300"
                   />
-                  <Label htmlFor="enableLowTemp">활성화</Label>
+                  <Label htmlFor="enableLowTemp">{tCommon('enabled')}</Label>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="lowTemp">임계값 (°C)</Label>
+                  <Label htmlFor="lowTemp">{t('thresholdC')}</Label>
                   <Input
                     id="lowTemp"
                     type="number"
@@ -362,12 +366,12 @@ export default function AlertsPage() {
                       setForm((f) => ({ ...f, lowTempThreshold: e.target.value }))
                     }
                   />
-                  <p className="text-xs text-muted-foreground">이 온도 미만이면 경고</p>
+                  <p className="text-xs text-muted-foreground">{t('lowTempHint')}</p>
                 </div>
               </div>
 
               <div className="space-y-4">
-                <h4 className="font-medium">태그 미갱신 알림</h4>
+                <h4 className="font-medium">{t('tagHeartbeat')}</h4>
                 <div className="flex items-center gap-4">
                   <input
                     type="checkbox"
@@ -378,10 +382,10 @@ export default function AlertsPage() {
                     }
                     className="h-4 w-4 rounded border-gray-300"
                   />
-                  <Label htmlFor="enableTagHeartbeat">활성화</Label>
+                  <Label htmlFor="enableTagHeartbeat">{tCommon('enabled')}</Label>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="tagLastUpdate">갱신 없음 임계 (시간)</Label>
+                  <Label htmlFor="tagLastUpdate">{t('tagHeartbeatThreshold')}</Label>
                   <Input
                     id="tagLastUpdate"
                     type="number"
@@ -392,12 +396,12 @@ export default function AlertsPage() {
                       setForm((f) => ({ ...f, tagLastUpdateHours: parseInt(e.target.value, 10) || 24 }))
                     }
                   />
-                  <p className="text-xs text-muted-foreground">이 시간 이상 갱신 없으면 경고</p>
+                  <p className="text-xs text-muted-foreground">{t('tagHeartbeatHint')}</p>
                 </div>
               </div>
 
               <div className="space-y-4">
-                <h4 className="font-medium">게이트웨이 끊김 알림</h4>
+                <h4 className="font-medium">{t('gwDisconnect')}</h4>
                 <div className="flex items-center gap-4">
                   <input
                     type="checkbox"
@@ -408,10 +412,10 @@ export default function AlertsPage() {
                     }
                     className="h-4 w-4 rounded border-gray-300"
                   />
-                  <Label htmlFor="enableGwDisconnect">활성화</Label>
+                  <Label htmlFor="enableGwDisconnect">{tCommon('enabled')}</Label>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="gwDisconnect">끊김 임계 (시간)</Label>
+                  <Label htmlFor="gwDisconnect">{t('gwDisconnectThreshold')}</Label>
                   <Input
                     id="gwDisconnect"
                     type="number"
@@ -422,7 +426,7 @@ export default function AlertsPage() {
                       setForm((f) => ({ ...f, gwDisconnectHours: parseInt(e.target.value, 10) || 24 }))
                     }
                   />
-                  <p className="text-xs text-muted-foreground">이 시간 이상 끊겨 있으면 경고</p>
+                  <p className="text-xs text-muted-foreground">{t('gwDisconnectHint')}</p>
                 </div>
               </div>
             </div>
@@ -430,7 +434,7 @@ export default function AlertsPage() {
             {(session?.user?.role === 'super' || session?.user?.role === 'admin') && (
             <Button type="submit" disabled={loading || !form.companyId}>
               <Save className="mr-2 h-4 w-4" />
-              {saved ? '저장됨' : '저장'}
+              {saved ? tCommon('saved') : tCommon('save')}
             </Button>
             )}
           </form>

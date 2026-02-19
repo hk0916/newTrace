@@ -5,6 +5,7 @@ declare module 'next-auth' {
   interface User {
     companyId?: string | null;
     role: string;
+    locale?: string;
   }
   interface Session {
     user: {
@@ -13,6 +14,7 @@ declare module 'next-auth' {
       name?: string | null;
       companyId?: string | null;
       role: string;
+      locale: string;
     };
     sessionIat?: number; // JWT iat (로그인 시점) - 알림 확인 시 세션 구분용
   }
@@ -23,6 +25,7 @@ declare module 'next-auth/jwt' {
     id: string;
     companyId?: string | null;
     role: string;
+    locale: string;
     iat?: number;
   }
 }

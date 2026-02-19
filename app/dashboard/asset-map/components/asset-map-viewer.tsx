@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Save, Pencil, Eye, Palette } from 'lucide-react';
 import { GatewayPlacement, type PlacementData, type GatewayAreaColor, AVAILABLE_COLORS } from './gateway-placement';
@@ -33,6 +34,8 @@ export function AssetMapViewer({
   canEdit,
   onBack,
 }: AssetMapViewerProps) {
+  const t = useTranslations('assetMap');
+  const tCommon = useTranslations('common');
   const [placements, setPlacements] = useState<PlacementData[]>(initialPlacements);
   const [isEditing, setIsEditing] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
@@ -52,9 +55,9 @@ export function AssetMapViewer({
     });
     if (!res.ok) {
       const data = await res.json().catch(() => null);
-      alert(data?.error || '색상 저장에 실패했습니다');
+      alert(data?.error || t('colorSaveFailed'));
     }
-  }, [mapId, mapName]);
+  }, [mapId, mapName, t]);
 
   const placedMacs = new Set(placements.map((p) => p.gwMac));
 
@@ -80,11 +83,9 @@ export function AssetMapViewer({
       const xPercent = ((e.clientX - rect.left) / rect.width) * 100;
       const yPercent = ((e.clientY - rect.top) / rect.height) * 100;
 
-      // Find gateway info
       const gw = allGateways.find((g) => g.gwMac === gwMac);
       if (!gw) return;
 
-      // Already placed?
       if (placements.some((p) => p.gwMac === gwMac)) return;
 
       const defaultW = 10;
@@ -138,7 +139,7 @@ export function AssetMapViewer({
       setIsDirty(false);
     } else {
       const data = await res.json().catch(() => null);
-      alert(data?.error || '저장에 실패했습니다');
+      alert(data?.error || t('saveFailed'));
     }
   }
 
@@ -155,7 +156,7 @@ export function AssetMapViewer({
           <h1 className="text-2xl font-bold">{mapName}</h1>
           {isDirty && (
             <span className="text-xs text-orange-500 font-medium">
-              (변경사항 있음)
+              ({t('unsavedChanges')})
             </span>
           )}
         </div>
@@ -163,7 +164,7 @@ export function AssetMapViewer({
           {placements.length > 0 && (
             <div className="flex items-center gap-1.5">
               <Palette className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">영역색:</span>
+              <span className="text-xs text-muted-foreground">{t('areaColor')}</span>
               {AVAILABLE_COLORS.map((c) => (
                 <button
                   key={c.id}
@@ -192,19 +193,19 @@ export function AssetMapViewer({
                 {isEditing ? (
                   <>
                     <Eye className="mr-2 h-4 w-4" />
-                    보기 모드
+                    {t('viewMode')}
                   </>
                 ) : (
                   <>
                     <Pencil className="mr-2 h-4 w-4" />
-                    편집 모드
+                    {t('editMode')}
                   </>
                 )}
               </Button>
               {isEditing && (
                 <Button size="sm" onClick={handleSave} disabled={saving || !isDirty}>
                   <Save className="mr-2 h-4 w-4" />
-                  {saving ? '저장 중...' : '저장'}
+                  {saving ? tCommon('saving') : tCommon('save')}
                 </Button>
               )}
             </>

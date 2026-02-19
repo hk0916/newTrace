@@ -1,21 +1,21 @@
 'use client';
 
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ArrowDown, ArrowUp } from 'lucide-react';
 
 interface TableFilterProps {
-  /** URL param prefix (e.g. 'tag', 'gw'). 빈 문자열이면 search, order 사용 */
   prefix?: string;
-  /** placeholder for search input */
   searchPlaceholder?: string;
 }
 
-export function TableFilter({ prefix = '', searchPlaceholder = '검색...' }: TableFilterProps) {
+export function TableFilter({ prefix = '', searchPlaceholder }: TableFilterProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const t = useTranslations('common');
 
   const searchParam = prefix ? `${prefix}Search` : 'search';
   const orderParam = prefix ? `${prefix}Order` : 'order';
@@ -35,7 +35,7 @@ export function TableFilter({ prefix = '', searchPlaceholder = '검색...' }: Ta
   return (
     <div className="flex items-center gap-2 flex-nowrap">
       <Input
-        placeholder={searchPlaceholder}
+        placeholder={searchPlaceholder ?? t('search')}
         value={search}
         onChange={(e) => updateParams({ [searchParam]: e.target.value })}
         className="w-48 sm:w-64 h-9 shrink-0"
@@ -47,7 +47,7 @@ export function TableFilter({ prefix = '', searchPlaceholder = '검색...' }: Ta
         className="h-9"
       >
         {order === 'desc' ? <ArrowDown className="h-4 w-4 mr-1" /> : <ArrowUp className="h-4 w-4 mr-1" />}
-        {order === 'desc' ? '최신순' : '오래된순'}
+        {order === 'desc' ? t('newestFirst') : t('oldestFirst')}
       </Button>
     </div>
   );

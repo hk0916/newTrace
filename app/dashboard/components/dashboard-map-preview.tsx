@@ -2,6 +2,7 @@
 
 import { useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { GatewayPlacement, type PlacementData, type GatewayAreaColor, AVAILABLE_COLORS } from '../asset-map/components/gateway-placement';
@@ -37,6 +38,8 @@ interface DashboardMapPreviewProps {
 function MapCard({ map, isSelected, onSelectDashboard }: { map: MapPreviewData; isSelected: boolean; onSelectDashboard?: () => void }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const tDash = useTranslations('dashboard');
+  const tMap = useTranslations('assetMap');
   const aspectRatio = (map.imageHeight / map.imageWidth) * 100;
   const colorPreset: GatewayAreaColor =
     AVAILABLE_COLORS.find((c) => c.id === map.gatewayAreaColor) ?? AVAILABLE_COLORS[0];
@@ -56,7 +59,7 @@ function MapCard({ map, isSelected, onSelectDashboard }: { map: MapPreviewData; 
             {isSelected && (
               <span className="text-xs text-amber-600 font-normal flex items-center gap-1">
                 <Star className="h-3 w-3 fill-amber-500" />
-                대시보드
+                {tMap('dashboard')}
               </span>
             )}
           </CardTitle>
@@ -71,7 +74,7 @@ function MapCard({ map, isSelected, onSelectDashboard }: { map: MapPreviewData; 
               }}
             >
               <Star className="h-3 w-3 mr-1" />
-              대시보드에 표시
+              {tDash('showOnDashboard')}
             </Button>
           )}
         </div>
@@ -108,9 +111,10 @@ function MapCard({ map, isSelected, onSelectDashboard }: { map: MapPreviewData; 
 }
 
 export function DashboardMapPreview({ maps, dashboardMapId, companyId, canEdit }: DashboardMapPreviewProps) {
+  const tDash = useTranslations('dashboard');
+
   if (maps.length === 0) return null;
 
-  // 선택된 맵만 표시 (있으면), 없으면 맵 목록 + 선택 UI
   const selectedMap = dashboardMapId ? maps.find((m) => m.id === dashboardMapId) : null;
   const displayMaps = selectedMap ? [selectedMap] : maps;
 
@@ -122,13 +126,13 @@ export function DashboardMapPreview({ maps, dashboardMapId, companyId, canEdit }
       window.location.reload();
     } else {
       const data = await res.json().catch(() => null);
-      alert(data?.error || '설정에 실패했습니다');
+      alert(data?.error || tDash('settingFailed'));
     }
   }
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-semibold">Asset Map</h2>
+      <h2 className="text-lg font-semibold">{tDash('assetMap')}</h2>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {displayMaps.map((map) => (
           <MapCard

@@ -3,6 +3,7 @@
 import { Suspense, useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -31,6 +32,8 @@ function TagsPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const companyId = useCompanyId();
+  const tTag = useTranslations('tags');
+  const tCommon = useTranslations('common');
   const [tags, setTags] = useState<TagRow[]>([]);
   const [companies, setCompanies] = useState<{ id: string; name: string }[]>([]);
   const [open, setOpen] = useState(false);
@@ -47,7 +50,6 @@ function TagsPageContent() {
   const search = searchParams.get('search') || '';
   const order = searchParams.get('order') || 'desc';
 
-  // super인데 companyId 없거나 'super'(시스템)이면 대시보드로 이동
   useEffect(() => {
     if (session?.user?.role === 'super' && (!companyId || companyId === 'super')) {
       router.replace('/dashboard');
@@ -107,7 +109,7 @@ function TagsPageContent() {
   return (
       <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <h1 className="text-2xl font-bold">태그 관리</h1>
+        <h1 className="text-2xl font-bold">{tTag('title')}</h1>
         <div className="flex items-center gap-2 flex-nowrap">
         {session?.user?.role === 'super' && companies.length > 0 && (
           <Select
@@ -118,7 +120,7 @@ function TagsPageContent() {
             }}
           >
             <SelectTrigger className="w-48">
-              <SelectValue placeholder="회사 선택" />
+              <SelectValue placeholder={tCommon('selectCompany')} />
             </SelectTrigger>
             <SelectContent>
               {companies.map((c) => (
@@ -127,42 +129,42 @@ function TagsPageContent() {
             </SelectContent>
           </Select>
         )}
-          <TableFilter searchPlaceholder="태그 검색 (이름, MAC, 자산유형)" />
+          <TableFilter searchPlaceholder={tTag('searchPlaceholder')} />
           {(session?.user?.role === 'super' || session?.user?.role === 'admin') && (
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button>
                 <Plus className="mr-2 h-4 w-4" />
-                태그 등록
+                {tTag('addTag')}
               </Button>
             </DialogTrigger>
             <DialogContent>
             <DialogHeader>
-              <DialogTitle>태그 등록</DialogTitle>
+              <DialogTitle>{tTag('addTag')}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="tagMac">MAC 주소</Label>
+                <Label htmlFor="tagMac">{tCommon('macAddress')}</Label>
                 <Input
                   id="tagMac"
-                  placeholder="AA:BB:CC:DD:EE:FF"
+                  placeholder="AABBCCDDEEFF"
                   value={form.tagMac}
                   onChange={(e) => setForm({ ...form, tagMac: e.target.value })}
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="tagName">이름</Label>
+                <Label htmlFor="tagName">{tCommon('name')}</Label>
                 <Input
                   id="tagName"
-                  placeholder="수액펌프 01"
+                  placeholder={tTag('namePlaceholder')}
                   value={form.tagName}
                   onChange={(e) => setForm({ ...form, tagName: e.target.value })}
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="reportInterval">보고 주기 (초)</Label>
+                <Label htmlFor="reportInterval">{tTag('reportInterval')}</Label>
                 <Input
                   id="reportInterval"
                   type="number"
@@ -173,34 +175,34 @@ function TagsPageContent() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="assetType">자산 유형</Label>
+                <Label htmlFor="assetType">{tTag('assetType')}</Label>
                 <Input
                   id="assetType"
-                  placeholder="의료장비, 자산 등"
+                  placeholder={tTag('assetTypePlaceholder')}
                   value={form.assetType}
                   onChange={(e) => setForm({ ...form, assetType: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="assignedGwMac">할당 게이트웨이 MAC (선택)</Label>
+                <Label htmlFor="assignedGwMac">{tTag('assignedGatewayMac')}</Label>
                 <Input
                   id="assignedGwMac"
-                  placeholder="AA:BB:CC:DD:EE:FF"
+                  placeholder="AABBCCDDEEFF"
                   value={form.assignedGwMac}
                   onChange={(e) => setForm({ ...form, assignedGwMac: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="tagDescription">설명</Label>
+                <Label htmlFor="tagDescription">{tCommon('description')}</Label>
                 <Input
                   id="tagDescription"
-                  placeholder="설명 (선택)"
+                  placeholder={tCommon('descriptionOptional')}
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
                 />
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? '등록 중...' : '등록'}
+                {loading ? tCommon('registering') : tCommon('register')}
               </Button>
             </form>
             </DialogContent>
@@ -220,8 +222,9 @@ function TagsPageContent() {
 }
 
 export default function TagsPage() {
+  const t = useTranslations('common');
   return (
-    <Suspense fallback={<div className="py-8 text-center text-muted-foreground">로딩 중...</div>}>
+    <Suspense fallback={<div className="py-8 text-center text-muted-foreground">{t('loading')}</div>}>
       <TagsPageContent />
     </Suspense>
   );

@@ -21,12 +21,12 @@ export async function GET() {
     : ['MAC주소', '이름'];
   const gwExample = isSuper(session)
     ? [
-        ['AA:BB:CC:DD:EE:01', '7층 게이트웨이 01', 'skaichips'],
-        ['AA:BB:CC:DD:EE:02', '7층 게이트웨이 02', 'skaichips'],
+        ['AABBCCDDEE01', '7층 게이트웨이 01', 'skaichips'],
+        ['AABBCCDDEE02', '7층 게이트웨이 02', 'skaichips'],
       ]
     : [
-        ['AA:BB:CC:DD:EE:01', '7층 게이트웨이 01'],
-        ['AA:BB:CC:DD:EE:02', '7층 게이트웨이 02'],
+        ['AABBCCDDEE01', '7층 게이트웨이 01'],
+        ['AABBCCDDEE02', '7층 게이트웨이 02'],
       ];
   const gwData = [gwHeaders, ...gwExample];
   const gwSheet = XLSX.utils.aoa_to_sheet(gwData);
@@ -38,12 +38,12 @@ export async function GET() {
     : ['MAC주소', '이름', '보고주기(초)'];
   const tagExample = isSuper(session)
     ? [
-        ['11:22:33:44:55:01', '수액펌프 01', 'skaichips', 60],
-        ['11:22:33:44:55:02', '수액펌프 02', 'skaichips', 60],
+        ['112233445501', '수액펌프 01', 'skaichips', 60],
+        ['112233445502', '수액펌프 02', 'skaichips', 60],
       ]
     : [
-        ['11:22:33:44:55:01', '수액펌프 01', 60],
-        ['11:22:33:44:55:02', '수액펌프 02', 60],
+        ['112233445501', '수액펌프 01', 60],
+        ['112233445502', '수액펌프 02', 60],
       ];
   const tagData = [tagHeaders, ...tagExample];
   const tagSheet = XLSX.utils.aoa_to_sheet(tagData);

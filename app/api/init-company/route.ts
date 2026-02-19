@@ -27,11 +27,11 @@ export async function GET(req: Request) {
     .orderBy(asc(companies.id))
     .limit(1);
   const first = withGw ?? fallback[0];
+  // first가 없으면 'unregistered' 사용 (리다이렉트 루프 방지)
+  const companyToSet = first?.id ?? 'unregistered';
 
   const url = new URL('/dashboard', new URL(req.url).origin);
   const res = NextResponse.redirect(url);
-  if (first) {
-    res.cookies.set(COMPANY_COOKIE_NAME, first.id, { path: '/', maxAge: 86400, httpOnly: false, sameSite: 'lax' });
-  }
+  res.cookies.set(COMPANY_COOKIE_NAME, companyToSet, { path: '/', maxAge: 86400, httpOnly: false, sameSite: 'lax' });
   return res;
 }

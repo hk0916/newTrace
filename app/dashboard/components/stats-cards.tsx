@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Radio, Tag, Wifi, AlertTriangle } from 'lucide-react';
 
@@ -10,29 +11,31 @@ interface StatsData {
 }
 
 export function StatsCards({ stats }: { stats: StatsData }) {
+  const t = useTranslations('stats');
+
   const cards = [
     {
-      title: '총 게이트웨이',
+      title: t('totalGateways'),
       value: stats.gateways.total,
-      sub: `활성 ${stats.gateways.active}`,
+      sub: t('activeCount', { count: stats.gateways.active }),
       icon: Radio,
     },
     {
-      title: '연결된 게이트웨이',
+      title: t('connectedGateways'),
       value: stats.gateways.connected,
-      sub: `총 ${stats.gateways.total}개 중`,
+      sub: t('outOfTotal', { count: stats.gateways.total }),
       icon: Wifi,
     },
     {
-      title: '총 태그',
+      title: t('totalTags'),
       value: stats.tags.total,
-      sub: `활성 ${stats.tags.active}`,
+      sub: t('activeCount', { count: stats.tags.active }),
       icon: Tag,
     },
     {
-      title: '알림',
+      title: t('alerts'),
       value: stats.alerts.lowVoltage,
-      sub: '저전압 태그',
+      sub: t('lowVoltageTags'),
       icon: AlertTriangle,
     },
   ];

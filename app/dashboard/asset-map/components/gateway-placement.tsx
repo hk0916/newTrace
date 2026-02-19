@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useRef } from 'react';
+import { useTranslations } from 'next-intl';
 import { Badge } from '@/components/ui/badge';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -18,12 +19,12 @@ export interface PlacementData {
 }
 
 export const AVAILABLE_COLORS = [
-  { id: 'amber', connected: 'border-amber-400 bg-amber-400/35', disconnected: 'border-amber-600/80 bg-amber-500/25', label: '호박' },
-  { id: 'emerald', connected: 'border-emerald-400 bg-emerald-400/35', disconnected: 'border-emerald-600/80 bg-emerald-500/25', label: '에메랄드' },
-  { id: 'rose', connected: 'border-rose-400 bg-rose-400/35', disconnected: 'border-rose-600/80 bg-rose-500/25', label: '로즈' },
-  { id: 'cyan', connected: 'border-cyan-400 bg-cyan-400/35', disconnected: 'border-cyan-600/80 bg-cyan-500/25', label: '시안' },
-  { id: 'violet', connected: 'border-violet-400 bg-violet-400/35', disconnected: 'border-violet-600/80 bg-violet-500/25', label: '바이올렛' },
-  { id: 'lime', connected: 'border-lime-400 bg-lime-400/35', disconnected: 'border-lime-600/80 bg-lime-500/25', label: '라임' },
+  { id: 'amber', connected: 'border-amber-400 bg-amber-400/35', disconnected: 'border-amber-600/80 bg-amber-500/25', label: 'Amber' },
+  { id: 'emerald', connected: 'border-emerald-400 bg-emerald-400/35', disconnected: 'border-emerald-600/80 bg-emerald-500/25', label: 'Emerald' },
+  { id: 'rose', connected: 'border-rose-400 bg-rose-400/35', disconnected: 'border-rose-600/80 bg-rose-500/25', label: 'Rose' },
+  { id: 'cyan', connected: 'border-cyan-400 bg-cyan-400/35', disconnected: 'border-cyan-600/80 bg-cyan-500/25', label: 'Cyan' },
+  { id: 'violet', connected: 'border-violet-400 bg-violet-400/35', disconnected: 'border-violet-600/80 bg-violet-500/25', label: 'Violet' },
+  { id: 'lime', connected: 'border-lime-400 bg-lime-400/35', disconnected: 'border-lime-600/80 bg-lime-500/25', label: 'Lime' },
 ] as const;
 
 export type GatewayAreaColor = (typeof AVAILABLE_COLORS)[number];
@@ -148,6 +149,7 @@ export function GatewayPlacement({
     [isEditing, placement, onUpdate, getContainerRect]
   );
 
+  const t = useTranslations('assetMap');
   const colorClass = placement.isConnected ? colorPreset.connected : colorPreset.disconnected;
 
   return (
@@ -188,7 +190,7 @@ export function GatewayPlacement({
           'absolute top-1 left-1 w-2 h-2 rounded-full',
           placement.isConnected ? 'bg-green-500' : 'bg-red-500'
         )}
-        title={placement.isConnected ? '연결됨' : '연결 끊김'}
+        title={placement.isConnected ? t('gwConnected') : t('gwDisconnected')}
       />
 
       {/* Remove button (edit mode only) */}

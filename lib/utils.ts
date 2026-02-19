@@ -18,16 +18,22 @@ export function formatDateTime(date: Date | string | null | undefined): string {
   return `${y}. ${m}. ${day}. ${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
 }
 
-/** MAC 주소 표시용 (: 제거, 예: 78:46:7D:08:01:D1 → 78467D0801D1) */
+/** MAC 주소 표시용 (이미 콜론 없는 형태, 대문자 보장) */
 export function formatMacDisplay(mac: string | null | undefined): string {
   if (!mac) return '-';
   return mac.replace(/:/g, '').toUpperCase();
 }
 
+/** 바이트 배열 → MAC 문자열 (콜론 없음, 대문자) */
 export function formatMac(bytes: Uint8Array | Buffer, reversed = false): string {
   const arr = Array.from(bytes);
   const ordered = reversed ? arr.reverse() : arr;
-  return ordered.map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(':');
+  return ordered.map(b => b.toString(16).padStart(2, '0').toUpperCase()).join('');
+}
+
+/** MAC 주소 정규화: 콜론/하이픈 제거 + 대문자 변환 */
+export function normalizeMac(mac: string): string {
+  return mac.replace(/[:\-]/g, '').toUpperCase();
 }
 
 export function toHexString(buffer: Buffer): string {

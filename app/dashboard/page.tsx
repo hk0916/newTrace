@@ -1,6 +1,7 @@
 import { eq, ne, and, asc, desc, sql } from 'drizzle-orm';
 import { Suspense } from 'react';
 import { cookies } from 'next/headers';
+import { getTranslations } from 'next-intl/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { companies, gateways, gatewayStatus, tags, tagSensingData, assetMaps, assetMapGateways } from '@/lib/db/schema';
@@ -149,10 +150,10 @@ export default async function DashboardPage({
     .where(eq(gateways.companyId, cid));
 
   if (gwSearch) {
-    const s = gwSearch.replace(/:/g, '');
+    const s = gwSearch.replace(/[:\-]/g, '').toLowerCase();
     gatewayList = gatewayList.filter(
       (gw) =>
-        gw.gwMac.replace(/:/g, '').toLowerCase().includes(s) ||
+        gw.gwMac.toLowerCase().includes(s) ||
         gw.gwName.toLowerCase().includes(gwSearch) ||
         (gw.location?.toLowerCase().includes(gwSearch) ?? false)
     );
@@ -200,10 +201,10 @@ export default async function DashboardPage({
   );
 
   if (tagSearch) {
-    const s = tagSearch.replace(/:/g, '');
+    const s = tagSearch.replace(/[:\-]/g, '').toLowerCase();
     tagsWithSensing = tagsWithSensing.filter(
       (t) =>
-        t.tagMac.replace(/:/g, '').toLowerCase().includes(s) ||
+        t.tagMac.toLowerCase().includes(s) ||
         t.tagName.toLowerCase().includes(tagSearch) ||
         (t.assetType?.toLowerCase().includes(tagSearch) ?? false)
     );
@@ -214,10 +215,12 @@ export default async function DashboardPage({
     return tagOrder === 'desc' ? bTime - aTime : aTime - bTime;
   });
 
+  const t = await getTranslations('dashboard');
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">대시보드</h1>
+        <h1 className="text-2xl font-bold">{t('title')}</h1>
         <DashboardRefresh />
       </div>
 
@@ -225,9 +228,9 @@ export default async function DashboardPage({
 
       <div className="space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <h2 className="text-lg font-semibold">게이트웨이</h2>
+          <h2 className="text-lg font-semibold">{t('gateway')}</h2>
           <Suspense fallback={null}>
-            <TableFilter prefix="gw" searchPlaceholder="게이트웨이 검색 (이름, MAC, 위치)" />
+            <TableFilter prefix="gw" searchPlaceholder={t('gwSearchPlaceholder')} />
           </Suspense>
         </div>
         <GatewayTable
@@ -241,9 +244,9 @@ export default async function DashboardPage({
 
       <div className="space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <h2 className="text-lg font-semibold">태그</h2>
+          <h2 className="text-lg font-semibold">{t('tag')}</h2>
           <Suspense fallback={null}>
-            <TableFilter prefix="tag" searchPlaceholder="태그 검색 (이름, MAC, 자산유형)" />
+            <TableFilter prefix="tag" searchPlaceholder={t('tagSearchPlaceholder')} />
           </Suspense>
         </div>
         <TagTable

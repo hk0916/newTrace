@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { signIn } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { signIn, getSession } from 'next-auth/react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,6 +11,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
+  const t = useTranslations('auth');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -29,9 +33,16 @@ export default function LoginPage() {
     setLoading(false);
 
     if (result?.error) {
-      setError('이메일 또는 비밀번호가 올바르지 않습니다.');
+      setError(t('invalidCredentials'));
     } else {
-      router.push('/dashboard');
+      // 로그인 후 세션에서 사용자 언어 설정을 읽어 쿠키 동기화
+      const session = await getSession();
+      const userLocale = session?.user?.locale;
+      if (userLocale) {
+        const maxAge = 365 * 24 * 60 * 60;
+        document.cookie = `NEXT_LOCALE=${userLocale}; path=/; max-age=${maxAge}; SameSite=Lax`;
+      }
+      router.push(callbackUrl);
     }
   }
 
@@ -39,13 +50,13 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-muted/50">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl">TraceTag</CardTitle>
-          <CardDescription>자산 추적 관리 플랫폼</CardDescription>
+          <CardTitle className="text-2xl">{t('platformName')}</CardTitle>
+          <CardDescription>{t('platformDescription')}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">이메일</Label>
+              <Label htmlFor="email">{t('email')}</Label>
               <Input
                 id="email"
                 type="email"
@@ -56,7 +67,7 @@ export default function LoginPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">비밀번호</Label>
+              <Label htmlFor="password">{t('password')}</Label>
               <Input
                 id="password"
                 type="password"
@@ -69,7 +80,7 @@ export default function LoginPage() {
               <p className="text-sm text-destructive">{error}</p>
             )}
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? '로그인 중...' : '로그인'}
+              {loading ? t('signingIn') : t('login')}
             </Button>
           </form>
         </CardContent>

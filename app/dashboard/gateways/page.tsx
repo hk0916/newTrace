@@ -3,6 +3,7 @@
 import { Suspense, useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -31,6 +32,8 @@ function GatewaysPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const companyId = useCompanyId();
+  const tGw = useTranslations('gateways');
+  const tCommon = useTranslations('common');
   const [gateways, setGateways] = useState<GatewayRow[]>([]);
   const [companies, setCompanies] = useState<{ id: string; name: string }[]>([]);
   const [open, setOpen] = useState(false);
@@ -40,7 +43,6 @@ function GatewaysPageContent() {
   const search = searchParams.get('search') || '';
   const order = searchParams.get('order') || 'desc';
 
-  // super인데 companyId 없거나 'super'(시스템)이면 대시보드로 이동 (쿠키 설정됨)
   useEffect(() => {
     if (session?.user?.role === 'super' && (!companyId || companyId === 'super')) {
       router.replace('/dashboard');
@@ -95,7 +97,7 @@ function GatewaysPageContent() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <h1 className="text-2xl font-bold">게이트웨이 관리</h1>
+        <h1 className="text-2xl font-bold">{tGw('title')}</h1>
         <div className="flex items-center gap-2 flex-nowrap">
         {session?.user?.role === 'super' && companies.length > 0 && (
           <Select
@@ -106,7 +108,7 @@ function GatewaysPageContent() {
             }}
           >
             <SelectTrigger className="w-48">
-              <SelectValue placeholder="회사 선택" />
+              <SelectValue placeholder={tCommon('selectCompany')} />
             </SelectTrigger>
             <SelectContent>
               {companies.map((c) => (
@@ -115,60 +117,60 @@ function GatewaysPageContent() {
             </SelectContent>
           </Select>
         )}
-        <TableFilter searchPlaceholder="게이트웨이 검색 (이름, MAC, 위치)" />
+        <TableFilter searchPlaceholder={tGw('searchPlaceholder')} />
         {(session?.user?.role === 'super' || session?.user?.role === 'admin') && (
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
-              게이트웨이 등록
+              {tGw('addGateway')}
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>게이트웨이 등록</DialogTitle>
+              <DialogTitle>{tGw('addGateway')}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="gwMac">MAC 주소</Label>
+                <Label htmlFor="gwMac">{tCommon('macAddress')}</Label>
                 <Input
                   id="gwMac"
-                  placeholder="AA:BB:CC:DD:EE:FF"
+                  placeholder="AABBCCDDEEFF"
                   value={form.gwMac}
                   onChange={(e) => setForm({ ...form, gwMac: e.target.value })}
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="gwName">이름</Label>
+                <Label htmlFor="gwName">{tCommon('name')}</Label>
                 <Input
                   id="gwName"
-                  placeholder="7층 게이트웨이 01"
+                  placeholder={tGw('namePlaceholder')}
                   value={form.gwName}
                   onChange={(e) => setForm({ ...form, gwName: e.target.value })}
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="location">위치</Label>
+                <Label htmlFor="location">{tCommon('location')}</Label>
                 <Input
                   id="location"
-                  placeholder="7층 간호사실"
+                  placeholder={tGw('locationPlaceholder')}
                   value={form.location}
                   onChange={(e) => setForm({ ...form, location: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="description">설명</Label>
+                <Label htmlFor="description">{tCommon('description')}</Label>
                 <Input
                   id="description"
-                  placeholder="설명 (선택)"
+                  placeholder={tCommon('descriptionOptional')}
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
                 />
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? '등록 중...' : '등록'}
+                {loading ? tCommon('registering') : tCommon('register')}
               </Button>
             </form>
           </DialogContent>
@@ -179,6 +181,7 @@ function GatewaysPageContent() {
 
       <GatewayTable
         gateways={gateways}
+        companyId={companyId ?? undefined}
         canEdit={session?.user?.role === 'super' || session?.user?.role === 'admin'}
         onEditSuccess={fetchGateways}
       />
@@ -187,8 +190,9 @@ function GatewaysPageContent() {
 }
 
 export default function GatewaysPage() {
+  const t = useTranslations('common');
   return (
-    <Suspense fallback={<div className="py-8 text-center text-muted-foreground">로딩 중...</div>}>
+    <Suspense fallback={<div className="py-8 text-center text-muted-foreground">{t('loading')}</div>}>
       <GatewaysPageContent />
     </Suspense>
   );

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,6 +19,8 @@ interface MapUploadDialogProps {
 }
 
 export function MapUploadDialog({ onCreated }: MapUploadDialogProps) {
+  const t = useTranslations('assetMap');
+  const tCommon = useTranslations('common');
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [file, setFile] = useState<File | null>(null);
@@ -54,7 +57,7 @@ export function MapUploadDialog({ onCreated }: MapUploadDialogProps) {
       onCreated();
     } else {
       const data = await res.json().catch(() => null);
-      alert(data?.error || '맵 생성에 실패했습니다');
+      alert(data?.error || t('uploadFailed'));
     }
   }
 
@@ -63,26 +66,26 @@ export function MapUploadDialog({ onCreated }: MapUploadDialogProps) {
       <DialogTrigger asChild>
         <Button>
           <Plus className="mr-2 h-4 w-4" />
-          맵 등록
+          {t('uploadMap')}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>자산 맵 등록</DialogTitle>
+          <DialogTitle>{t('uploadMapTitle')}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="mapName">맵 이름</Label>
+            <Label htmlFor="mapName">{t('mapName')}</Label>
             <Input
               id="mapName"
-              placeholder="예: 7층 도면"
+              placeholder={t('mapNamePlaceholder')}
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="mapFile">도면 이미지</Label>
+            <Label htmlFor="mapFile">{t('mapImage')}</Label>
             <Input
               ref={fileInputRef}
               id="mapFile"
@@ -91,15 +94,15 @@ export function MapUploadDialog({ onCreated }: MapUploadDialogProps) {
               onChange={handleFileChange}
               required
             />
-            <p className="text-xs text-muted-foreground">JPG, PNG, WebP (최대 10MB)</p>
+            <p className="text-xs text-muted-foreground">{t('mapImageHint')}</p>
           </div>
           {preview && (
             <div className="border rounded-md overflow-hidden">
-              <img src={preview} alt="미리보기" className="w-full h-auto max-h-48 object-contain bg-muted" />
+              <img src={preview} alt={t('preview')} className="w-full h-auto max-h-48 object-contain bg-muted" />
             </div>
           )}
           <Button type="submit" className="w-full" disabled={loading || !file}>
-            {loading ? '업로드 중...' : '등록'}
+            {loading ? t('uploading') : tCommon('register')}
           </Button>
         </form>
       </DialogContent>

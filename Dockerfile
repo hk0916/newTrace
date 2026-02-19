@@ -72,7 +72,8 @@ COPY --from=builder /app/lib/db ./lib/db
 
 USER wsuser
 
-EXPOSE 8080
+EXPOSE 8080 8081
 ENV WS_PORT=8080
+ENV WS_CMD_PORT=8081
 
 CMD ["npx", "tsx", "server/websocket.ts"]

@@ -23,7 +23,7 @@ export function parseGwInfo(buf: Buffer): GwInfoPayload {
   // GW MAC: bytes 4-9 (6 bytes)
   const gwMac = Array.from(buf.subarray(4, 10))
     .map(b => b.toString(16).padStart(2, '0').toUpperCase())
-    .join(':');
+    .join('');
 
   // HW Version: bytes 10-16 (7 bytes, UTF-8)
   const hwVersion = buf.subarray(10, 17).toString('utf-8').replace(/\0/g, '').trim();
@@ -58,7 +58,7 @@ export function parseTagData(buf: Buffer): TagDataPayload {
   // GW MAC: bytes 4-9 (6 bytes, 순방향)
   const gwMac = Array.from(buf.subarray(4, 10))
     .map(b => b.toString(16).padStart(2, '0').toUpperCase())
-    .join(':');
+    .join('');
 
   // Scan Tick: bytes 10-13 (4 bytes, little-endian reversed)
   const scanTickBuf = Buffer.from(buf.subarray(10, 14));
@@ -74,7 +74,7 @@ export function parseTagData(buf: Buffer): TagDataPayload {
   // TAG MAC: bytes 19-24 (6 bytes, 역순)
   const tagMac = Array.from(buf.subarray(19, 25))
     .map(b => b.toString(16).padStart(2, '0')).reverse()
-    .join(':').toUpperCase();
+    .join('').toUpperCase();
 
   // 온도/전압 계산용 바이트 추출
   const ucTempOtp = advData[10];  // advData offset 10
@@ -135,6 +135,70 @@ export function buildTagDataResponse(): Buffer {
 /** 게이트웨이 정보 요청 패킷 생성 */
 export function buildGwInfoRequest(): Buffer {
   return Buffer.from([0x01, 0x01]);
+}
+
+/** OTA 서버 URL 설정 패킷 생성 (0x02 0x01) */
+export function buildSetOtaUrl(url: string): Buffer {
+  const urlBuf = Buffer.from(url, 'utf-8');
+  const length = 1 + urlBuf.length; // urlLen(1) + url
+  const buf = Buffer.alloc(4 + length);
+  buf[0] = 0x02;
+  buf[1] = 0x01;
+  buf.writeUInt16BE(length, 2);
+  buf[4] = urlBuf.length;
+  urlBuf.copy(buf, 5);
+  return buf;
+}
+
+/** WS 서버 URL 설정 패킷 생성 (0x04 0x01) */
+export function buildSetWsUrl(url: string): Buffer {
+  const urlBuf = Buffer.from(url, 'utf-8');
+  const length = 1 + urlBuf.length;
+  const buf = Buffer.alloc(4 + length);
+  buf[0] = 0x04;
+  buf[1] = 0x01;
+  buf.writeUInt16BE(length, 2);
+  buf[4] = urlBuf.length;
+  urlBuf.copy(buf, 5);
+  return buf;
+}
+
+/** 리포트 주기 설정 패킷 생성 (0x05 0x01) - seconds: uint32 LE */
+export function buildSetReportInterval(seconds: number): Buffer {
+  const buf = Buffer.alloc(4 + 4);
+  buf[0] = 0x05;
+  buf[1] = 0x01;
+  buf.writeUInt16BE(4, 2);
+  buf.writeUInt32LE(seconds, 4);
+  return buf;
+}
+
+/** RSSI 필터 설정 패킷 생성 (0x06 0x01) - value: int8 */
+export function buildSetRssiFilter(value: number): Buffer {
+  const buf = Buffer.alloc(4 + 1);
+  buf[0] = 0x06;
+  buf[1] = 0x01;
+  buf.writeUInt16BE(1, 2);
+  buf.writeInt8(value, 4);
+  return buf;
+}
+
+/** OTA 업데이트 실행 패킷 생성 (0x07 0x01) */
+export function buildCmdOta(url: string): Buffer {
+  const urlBuf = Buffer.from(url, 'utf-8');
+  const length = 1 + urlBuf.length;
+  const buf = Buffer.alloc(4 + length);
+  buf[0] = 0x07;
+  buf[1] = 0x01;
+  buf.writeUInt16BE(length, 2);
+  buf[4] = urlBuf.length;
+  urlBuf.copy(buf, 5);
+  return buf;
+}
+
+/** 게이트웨이 정보 요청 패킷 생성 (0x08 0x01) - alias for buildGwInfoRequest */
+export function buildGetGatewayInfo(): Buffer {
+  return buildGwInfoRequest();
 }
 
 /** 패킷 유효성 검사 */

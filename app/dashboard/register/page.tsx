@@ -3,6 +3,7 @@
 import { Suspense, useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,6 +23,10 @@ function RegisterPageContent() {
   const { data: session } = useSession();
   const router = useRouter();
   const companyId = useCompanyId();
+  const tReg = useTranslations('register');
+  const tCommon = useTranslations('common');
+  const tGw = useTranslations('gateways');
+  const tTag = useTranslations('tags');
   const [companies, setCompanies] = useState<{ id: string; name: string }[]>([]);
   const [gwLoading, setGwLoading] = useState(false);
   const [tagLoading, setTagLoading] = useState(false);
@@ -35,7 +40,6 @@ function RegisterPageContent() {
   const [bulkResult, setBulkResult] = useState<{ gateways: { success: number; fail: number; errors: string[] }; tags: { success: number; fail: number; errors: string[] } } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // super인데 companyId 없거나 'super'(시스템)이면 대시보드로 이동
   useEffect(() => {
     if (isSuper && (!companyId || companyId === 'super')) {
       router.replace('/dashboard');
@@ -48,7 +52,6 @@ function RegisterPageContent() {
     }
   }, [isSuper]);
 
-  // super: 폼에 companyId 초기화 / admin: session companyId 사용
   useEffect(() => {
     if (isSuper && companies.length > 0) {
       setGwForm((f) => ({ ...f, companyId: companyId || companies[0]?.id || '' }));
@@ -75,7 +78,7 @@ function RegisterPageContent() {
       setGwForm((f) => ({ ...f, gwMac: '', gwName: '' }));
     } else {
       const data = await res.json().catch(() => ({}));
-      alert(data.error || '등록에 실패했습니다.');
+      alert(data.error || tReg('registerFailed'));
     }
   }
 
@@ -99,12 +102,11 @@ function RegisterPageContent() {
       setTagForm((f) => ({ ...f, tagMac: '', tagName: '' }));
     } else {
       const data = await res.json().catch(() => ({}));
-      alert(data.error || '등록에 실패했습니다.');
+      alert(data.error || tReg('registerFailed'));
     }
   }
 
   function handleDownloadTemplate() {
-    // form submit + target="_blank"로 새 탭에서 다운로드 (쿠키 전송, 창 전환 최소화)
     const form = document.createElement('form');
     form.method = 'GET';
     form.action = '/api/register/template';
@@ -130,14 +132,14 @@ function RegisterPageContent() {
       setBulkResult(data);
     } else {
       const err = await res.json().catch(() => ({}));
-      alert(err.error || '대량 등록에 실패했습니다.');
+      alert(err.error || tReg('bulkFailed'));
     }
   }
 
   if (!canRegister) {
     return (
       <div className="text-center py-12 text-muted-foreground">
-        등록 권한이 없습니다. (super, admin만 등록 가능)
+        {tReg('noPermission')}
       </div>
     );
   }
@@ -145,10 +147,10 @@ function RegisterPageContent() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold">자산 등록</h1>
+        <h1 className="text-2xl font-bold">{tReg('title')}</h1>
         <p className="text-muted-foreground mt-1">
-          게이트웨이와 태그를 등록합니다.
-          {isSuper ? ' 회사를 선택한 후 등록하세요.' : ' 본인 회사에 등록됩니다.'}
+          {tReg('description')}
+          {isSuper ? tReg('descriptionSuper') : tReg('descriptionAdmin')}
         </p>
       </div>
 
@@ -156,17 +158,17 @@ function RegisterPageContent() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileSpreadsheet className="h-5 w-5" />
-            엑셀 대량 등록
+            {tReg('bulkTitle')}
           </CardTitle>
           <CardDescription>
-            예시 양식을 다운로드하여 작성한 후 업로드하세요. 게이트웨이·태그 시트가 각각 있습니다.
+            {tReg('bulkDescription')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={handleDownloadTemplate}>
               <Download className="mr-2 h-4 w-4" />
-              예시 엑셀 다운로드
+              {tReg('downloadTemplate')}
             </Button>
             <Button
               variant="outline"
@@ -174,7 +176,7 @@ function RegisterPageContent() {
               disabled={bulkLoading}
             >
               <Upload className="mr-2 h-4 w-4" />
-              {bulkLoading ? '등록 중...' : '엑셀 파일 업로드'}
+              {bulkLoading ? tCommon('registering') : tReg('uploadExcel')}
             </Button>
             <input
               ref={fileInputRef}
@@ -186,16 +188,16 @@ function RegisterPageContent() {
           </div>
           {bulkResult && (
             <div className="rounded-lg border p-4 text-sm space-y-2">
-              <p className="font-medium">등록 결과</p>
-              <p>게이트웨이: 성공 {bulkResult.gateways.success}건, 실패 {bulkResult.gateways.fail}건</p>
-              <p>태그: 성공 {bulkResult.tags.success}건, 실패 {bulkResult.tags.fail}건</p>
+              <p className="font-medium">{tReg('bulkResult')}</p>
+              <p>{tReg('bulkGatewayResult', { success: bulkResult.gateways.success, fail: bulkResult.gateways.fail })}</p>
+              <p>{tReg('bulkTagResult', { success: bulkResult.tags.success, fail: bulkResult.tags.fail })}</p>
               {(bulkResult.gateways.errors.length > 0 || bulkResult.tags.errors.length > 0) && (
                 <div className="mt-2 text-destructive text-xs max-h-32 overflow-y-auto">
                   {[...bulkResult.gateways.errors, ...bulkResult.tags.errors].slice(0, 10).map((e, i) => (
                     <div key={i}>{e}</div>
                   ))}
                   {(bulkResult.gateways.errors.length + bulkResult.tags.errors.length) > 10 && (
-                    <div>... 외 {bulkResult.gateways.errors.length + bulkResult.tags.errors.length - 10}건</div>
+                    <div>{tReg('bulkMoreErrors', { count: bulkResult.gateways.errors.length + bulkResult.tags.errors.length - 10 })}</div>
                   )}
                 </div>
               )}
@@ -209,24 +211,24 @@ function RegisterPageContent() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Radio className="h-5 w-5" />
-              게이트웨이 등록
+              {tReg('gwRegister')}
             </CardTitle>
             <CardDescription>
-              {isSuper ? 'MAC, 이름, 회사를 입력하세요.' : 'MAC, 이름을 입력하세요.'}
+              {isSuper ? tReg('gwDescriptionSuper') : tReg('gwDescriptionAdmin')}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleGatewaySubmit} className="space-y-4">
               {isSuper && (
                 <div className="space-y-2">
-                  <Label htmlFor="gw-company">회사</Label>
+                  <Label htmlFor="gw-company">{tCommon('company')}</Label>
                   <Select
                     value={gwForm.companyId}
                     onValueChange={(v) => setGwForm((f) => ({ ...f, companyId: v }))}
                     required
                   >
                     <SelectTrigger id="gw-company">
-                      <SelectValue placeholder="회사 선택" />
+                      <SelectValue placeholder={tCommon('selectCompany')} />
                     </SelectTrigger>
                     <SelectContent>
                       {companies.map((c) => (
@@ -237,20 +239,20 @@ function RegisterPageContent() {
                 </div>
               )}
               <div className="space-y-2">
-                <Label htmlFor="gwMac">MAC 주소</Label>
+                <Label htmlFor="gwMac">{tCommon('macAddress')}</Label>
                 <Input
                   id="gwMac"
-                  placeholder="AA:BB:CC:DD:EE:FF"
+                  placeholder="AABBCCDDEEFF"
                   value={gwForm.gwMac}
                   onChange={(e) => setGwForm((f) => ({ ...f, gwMac: e.target.value }))}
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="gwName">이름</Label>
+                <Label htmlFor="gwName">{tCommon('name')}</Label>
                 <Input
                   id="gwName"
-                  placeholder="7층 게이트웨이 01"
+                  placeholder={tGw('namePlaceholder')}
                   value={gwForm.gwName}
                   onChange={(e) => setGwForm((f) => ({ ...f, gwName: e.target.value }))}
                   required
@@ -258,7 +260,7 @@ function RegisterPageContent() {
               </div>
               <Button type="submit" className="w-full" disabled={gwLoading}>
                 <Plus className="mr-2 h-4 w-4" />
-                {gwLoading ? '등록 중...' : '게이트웨이 등록'}
+                {gwLoading ? tCommon('registering') : tReg('gwRegister')}
               </Button>
             </form>
           </CardContent>
@@ -268,24 +270,24 @@ function RegisterPageContent() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Tag className="h-5 w-5" />
-              태그 등록
+              {tReg('tagRegister')}
             </CardTitle>
             <CardDescription>
-              {isSuper ? 'MAC, 이름, 회사를 입력하세요.' : 'MAC, 이름을 입력하세요.'}
+              {isSuper ? tReg('gwDescriptionSuper') : tReg('gwDescriptionAdmin')}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleTagSubmit} className="space-y-4">
               {isSuper && (
                 <div className="space-y-2">
-                  <Label htmlFor="tag-company">회사</Label>
+                  <Label htmlFor="tag-company">{tCommon('company')}</Label>
                   <Select
                     value={tagForm.companyId}
                     onValueChange={(v) => setTagForm((f) => ({ ...f, companyId: v }))}
                     required
                   >
                     <SelectTrigger id="tag-company">
-                      <SelectValue placeholder="회사 선택" />
+                      <SelectValue placeholder={tCommon('selectCompany')} />
                     </SelectTrigger>
                     <SelectContent>
                       {companies.map((c) => (
@@ -296,27 +298,27 @@ function RegisterPageContent() {
                 </div>
               )}
               <div className="space-y-2">
-                <Label htmlFor="tagMac">MAC 주소</Label>
+                <Label htmlFor="tagMac">{tCommon('macAddress')}</Label>
                 <Input
                   id="tagMac"
-                  placeholder="11:22:33:44:55:66"
+                  placeholder="112233445566"
                   value={tagForm.tagMac}
                   onChange={(e) => setTagForm((f) => ({ ...f, tagMac: e.target.value }))}
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="tagName">이름</Label>
+                <Label htmlFor="tagName">{tCommon('name')}</Label>
                 <Input
                   id="tagName"
-                  placeholder="수액펌프 01"
+                  placeholder={tTag('namePlaceholder')}
                   value={tagForm.tagName}
                   onChange={(e) => setTagForm((f) => ({ ...f, tagName: e.target.value }))}
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="reportInterval">보고 주기 (초)</Label>
+                <Label htmlFor="reportInterval">{tReg('reportInterval')}</Label>
                 <Input
                   id="reportInterval"
                   type="number"
@@ -327,7 +329,7 @@ function RegisterPageContent() {
               </div>
               <Button type="submit" className="w-full" disabled={tagLoading}>
                 <Plus className="mr-2 h-4 w-4" />
-                {tagLoading ? '등록 중...' : '태그 등록'}
+                {tagLoading ? tCommon('registering') : tReg('tagRegister')}
               </Button>
             </form>
           </CardContent>
@@ -338,8 +340,9 @@ function RegisterPageContent() {
 }
 
 export default function RegisterPage() {
+  const t = useTranslations('common');
   return (
-    <Suspense fallback={<div className="py-8 text-center text-muted-foreground">로딩 중...</div>}>
+    <Suspense fallback={<div className="py-8 text-center text-muted-foreground">{t('loading')}</div>}>
       <RegisterPageContent />
     </Suspense>
   );

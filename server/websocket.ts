@@ -1,20 +1,27 @@
 import * as dotenv from 'dotenv';
 dotenv.config({ path: '.env.local' });
 
+import http from 'node:http';
 import { WebSocketServer, WebSocket } from 'ws';
 import { handleMessage, handleDisconnect, connectedGateways } from './handlers';
 import { buildGwInfoRequest } from './protocol';
+import { startCommandApi } from './command-api';
 import type { ClientInfo } from './types';
 
 const WS_PORT = Number(process.env.WS_PORT) || 8080;
 
-const wss = new WebSocketServer({ port: WS_PORT });
+const httpServer = http.createServer();
+const wss = new WebSocketServer({ server: httpServer });
+httpServer.listen({ port: WS_PORT, reuseAddr: true }, () => {
+  console.log(`[WS Server] 시작 - 포트 ${WS_PORT}`);
+  console.log(`[WS Server] 게이트웨이 연결 대기 중...`);
+});
 
 // MAC ↔ 클라이언트 정보 매핑 (연결 해제 시 MAC 조회용)
 const clientMacMap = new Map<WebSocket, string>();
 
-console.log(`[WS Server] 시작 - 포트 ${WS_PORT}`);
-console.log(`[WS Server] 게이트웨이 연결 대기 중...`);
+// 명령 HTTP API 시작
+startCommandApi();
 
 const REGISTRATION_TIMEOUT_MS = 30_000; // 30초 내 0x08 미수신 시 연결 종료
 
@@ -48,7 +55,7 @@ wss.on('connection', (ws: WebSocket, req) => {
     if (data.length >= 10 && data[0] === 0x08 && (data[1] === 0x01 || data[1] === 0x03)) {
       const gwMac = Array.from(data.subarray(4, 10))
         .map(b => b.toString(16).padStart(2, '0').toUpperCase())
-        .join(':');
+        .join('');
       clientMacMap.set(ws, gwMac);
     }
 
@@ -75,8 +82,12 @@ wss.on('connection', (ws: WebSocket, req) => {
   });
 });
 
-wss.on('error', (error) => {
+httpServer.on('error', (error) => {
   console.error('[WS Server] 서버 에러:', error);
+});
+
+wss.on('error', (error) => {
+  console.error('[WS Server] WebSocket 에러:', error);
 });
 
 // 상태 모니터링 (30초마다)
@@ -88,7 +99,9 @@ setInterval(() => {
 process.on('SIGINT', () => {
   console.log('\n[WS Server] 종료 중...');
   wss.close(() => {
-    console.log('[WS Server] 종료 완료');
-    process.exit(0);
+    httpServer.close(() => {
+      console.log('[WS Server] 종료 완료');
+      process.exit(0);
+    });
   });
 });

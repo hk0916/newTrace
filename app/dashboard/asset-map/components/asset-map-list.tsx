@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -25,12 +26,14 @@ interface AssetMapListProps {
 }
 
 export function AssetMapList({ maps, canEdit, dashboardMapId, onSelect, onDelete, onSetDashboard }: AssetMapListProps) {
+  const t = useTranslations('assetMap');
+
   if (maps.length === 0) {
     return (
       <div className="py-16 text-center text-muted-foreground">
         <MapPin className="mx-auto h-12 w-12 mb-4 opacity-50" />
-        <p className="text-lg font-medium">등록된 맵이 없습니다</p>
-        <p className="text-sm mt-1">맵 등록 버튼으로 도면을 추가해주세요</p>
+        <p className="text-lg font-medium">{t('noMaps')}</p>
+        <p className="text-sm mt-1">{t('noMapsHint')}</p>
       </div>
     );
   }
@@ -55,32 +58,32 @@ export function AssetMapList({ maps, canEdit, dashboardMapId, onSelect, onDelete
               <div className="min-w-0">
                 <h3 className="font-medium truncate flex items-center gap-1.5">
                   {map.name}
-                  {dashboardMapId === map.id && (
+                  {map.id === dashboardMapId && (
                     <Badge variant="outline" className="text-xs font-normal text-amber-600 border-amber-400">
                       <Star className="h-3 w-3 fill-amber-500 mr-0.5" />
-                      대시보드
+                      {t('dashboard')}
                     </Badge>
                   )}
                 </h3>
                 <div className="flex items-center gap-2 mt-1 flex-wrap">
                   <Badge variant="secondary">
-                    게이트웨이 {map.gatewayCount}개
+                    {t('gatewayCount', { count: map.gatewayCount })}
                   </Badge>
                 </div>
               </div>
               <div className="flex items-center gap-1 shrink-0">
-                {canEdit && onSetDashboard && dashboardMapId !== map.id && (
+                {canEdit && onSetDashboard && (
                   <Button
-                    variant="outline"
+                    variant={map.id === dashboardMapId ? 'secondary' : 'outline'}
                     size="sm"
-                    className="h-8 text-xs"
+                    className={`h-8 text-xs ${map.id === dashboardMapId ? 'text-amber-600' : ''}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       onSetDashboard(map.id);
                     }}
                   >
-                    <Star className="h-3 w-3 mr-1" />
-                    대시보드에 표시
+                    <Star className={`h-3 w-3 mr-1 ${map.id === dashboardMapId ? 'fill-amber-500' : ''}`} />
+                    {map.id === dashboardMapId ? t('hideDashboard') : t('showOnDashboard')}
                   </Button>
                 )}
                 {canEdit && (
@@ -90,7 +93,7 @@ export function AssetMapList({ maps, canEdit, dashboardMapId, onSelect, onDelete
                     className="text-muted-foreground hover:text-destructive h-8 w-8"
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (confirm(`'${map.name}' 맵을 삭제하시겠습니까?`)) {
+                      if (confirm(t('deleteConfirm', { name: map.name }))) {
                         onDelete(map.id);
                       }
                     }}

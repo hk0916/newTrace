@@ -3,6 +3,7 @@
 import { Suspense, useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useCompanyId } from '../hooks/use-company-id';
 import { setCompanyIdCookie } from '@/lib/company-cookie';
 import {
@@ -22,6 +23,8 @@ function AssetMapPageContent() {
   const { data: session } = useSession();
   const router = useRouter();
   const companyId = useCompanyId();
+  const t = useTranslations('assetMap');
+  const tCommon = useTranslations('common');
   const [maps, setMaps] = useState<AssetMapItem[]>([]);
   const [companies, setCompanies] = useState<{ id: string; name: string }[]>([]);
   const [selectedMap, setSelectedMap] = useState<AssetMapItem | null>(null);
@@ -34,21 +37,18 @@ function AssetMapPageContent() {
 
   const canEdit = session?.user?.role === 'super' || session?.user?.role === 'admin';
 
-  // super user redirect
   useEffect(() => {
     if (session?.user?.role === 'super' && (!companyId || companyId === 'super')) {
       router.replace('/dashboard');
     }
   }, [session?.user?.role, companyId, router]);
 
-  // fetch companies for super
   useEffect(() => {
     if (session?.user?.role === 'super') {
       fetch('/api/companies').then((r) => r.ok ? r.json().then(setCompanies) : undefined);
     }
   }, [session?.user?.role]);
 
-  // fetch map list
   const [dashboardMapId, setDashboardMapId] = useState<string | null>(null);
 
   const fetchMaps = useCallback(async () => {
@@ -67,7 +67,6 @@ function AssetMapPageContent() {
     fetchMaps();
   }, [fetchMaps]);
 
-  // fetch map detail when selected
   const fetchMapDetail = useCallback(async (mapId: string) => {
     setLoading(true);
     const [mapRes, gwRes] = await Promise.all([
@@ -79,25 +78,20 @@ function AssetMapPageContent() {
       const mapData = await mapRes.json();
       const gwData = await gwRes.json();
 
-      // Build gateway items with tag counts
       const gwList: GatewayItem[] = (Array.isArray(gwData) ? gwData : []).map(
         (gw: Record<string, unknown>) => ({
           gwMac: gw.gwMac as string,
           gwName: gw.gwName as string,
           isConnected: gw.isConnected as boolean ?? false,
-          tagCount: 0, // Will be filled from placements or a separate query
+          tagCount: 0,
         })
       );
 
-      // Get tag counts for all gateways
-      // We use the map placements' tag counts for placed ones,
-      // but for unplaced ones we need to fetch individually or count from tags API
       const placementTagCounts = new Map<string, number>();
       for (const p of mapData.placements || []) {
         placementTagCounts.set(p.gwMac, Number(p.tagCount) || 0);
       }
 
-      // Fetch tag count for each gateway (simple approach)
       const tagsRes = await fetch(`/api/tags?companyId=${companyId}`);
       const tagsData = tagsRes.ok ? await tagsRes.json() : [];
       const tagCountMap = new Map<string, number>();
@@ -147,7 +141,7 @@ function AssetMapPageContent() {
       fetchMaps();
     } else {
       const data = await res.json().catch(() => null);
-      alert(data?.error || '삭제에 실패했습니다');
+      alert(data?.error || t('deleteFailed'));
     }
   }
 
@@ -157,7 +151,6 @@ function AssetMapPageContent() {
     fetchMaps();
   }
 
-  // Show map viewer if a map is selected
   if (selectedMap && mapDetail) {
     return (
       <AssetMapViewer
@@ -175,11 +168,10 @@ function AssetMapPageContent() {
     );
   }
 
-  // Map list view
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <h1 className="text-2xl font-bold">자산 맵</h1>
+        <h1 className="text-2xl font-bold">{t('title')}</h1>
         <div className="flex items-center gap-2 flex-nowrap">
           {session?.user?.role === 'super' && companies.length > 0 && (
             <Select
@@ -190,7 +182,7 @@ function AssetMapPageContent() {
               }}
             >
               <SelectTrigger className="w-48">
-                <SelectValue placeholder="회사 선택" />
+                <SelectValue placeholder={tCommon('selectCompany')} />
               </SelectTrigger>
               <SelectContent>
                 {companies.map((c) => (
@@ -204,7 +196,7 @@ function AssetMapPageContent() {
       </div>
 
       {loading ? (
-        <div className="py-8 text-center text-muted-foreground">로딩 중...</div>
+        <div className="py-8 text-center text-muted-foreground">{tCommon('loading')}</div>
       ) : (
         <AssetMapList
           maps={maps}
@@ -220,7 +212,7 @@ function AssetMapPageContent() {
               setDashboardMapId(mapId);
             } else {
               const data = await res.json().catch(() => null);
-              alert(data?.error || '설정에 실패했습니다');
+              alert(data?.error || t('deleteFailed'));
             }
           } : undefined}
         />
@@ -230,8 +222,9 @@ function AssetMapPageContent() {
 }
 
 export default function AssetMapPage() {
+  const t = useTranslations('common');
   return (
-    <Suspense fallback={<div className="py-8 text-center text-muted-foreground">로딩 중...</div>}>
+    <Suspense fallback={<div className="py-8 text-center text-muted-foreground">{t('loading')}</div>}>
       <AssetMapPageContent />
     </Suspense>
   );

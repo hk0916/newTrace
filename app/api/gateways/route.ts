@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { gateways, gatewayStatus } from '@/lib/db/schema';
 import { createGatewaySchema } from '@/lib/validators/gateway';
@@ -41,17 +41,20 @@ export async function GET(req: NextRequest) {
       port: gatewayStatus.port,
       reportInterval: gatewayStatus.reportInterval,
       rssiFilter: gatewayStatus.rssiFilter,
+      otaServerUrl: gatewayStatus.otaServerUrl,
+      wsServerUrl: gatewayStatus.wsServerUrl,
       lastConnectedAt: gatewayStatus.lastConnectedAt,
+      tagCount: sql<number>`(SELECT COUNT(*) FROM tags WHERE assigned_gw_mac = ${gateways.gwMac} AND is_active = true)`.as('tag_count'),
     })
     .from(gateways)
     .leftJoin(gatewayStatus, eq(gateways.gwMac, gatewayStatus.gwMac))
     .where(eq(gateways.companyId, companyId));
 
   if (search) {
-    const s = search.replace(/:/g, '');
+    const s = search.replace(/[:\-]/g, '').toLowerCase();
     result = result.filter(
       (gw) =>
-        gw.gwMac.replace(/:/g, '').toLowerCase().includes(s) ||
+        gw.gwMac.toLowerCase().includes(s) ||
         gw.gwName.toLowerCase().includes(search) ||
         (gw.location?.toLowerCase().includes(search) ?? false)
     );

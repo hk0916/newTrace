@@ -1,11 +1,11 @@
 import { getSession, requireAuth, resolveCompanyId, isAdminOrAbove, apiError, apiSuccess } from '@/lib/api-utils';
 import { db } from '@/lib/db';
-import { assetMaps, companies } from '@/lib/db/schema';
+import { assetMaps } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 
 import { NextRequest } from 'next/server';
 
-/** 대시보드에 표시할 맵 설정 (admin/super만) */
+/** 대시보드에 표시할 맵 토글 (admin/super만) */
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ mapId: string }> }
@@ -21,17 +21,19 @@ export async function POST(
   const { mapId } = await params;
 
   const [map] = await db
-    .select()
+    .select({ id: assetMaps.id, showOnDashboard: assetMaps.showOnDashboard })
     .from(assetMaps)
     .where(and(eq(assetMaps.id, mapId), eq(assetMaps.companyId, companyId)))
     .limit(1);
 
   if (!map) return apiError('맵을 찾을 수 없습니다', 404);
 
-  await db
-    .update(companies)
-    .set({ dashboardMapId: mapId, updatedAt: new Date() })
-    .where(eq(companies.id, companyId));
+  const newValue = !map.showOnDashboard;
 
-  return apiSuccess({ success: true, dashboardMapId: mapId });
+  await db
+    .update(assetMaps)
+    .set({ showOnDashboard: newValue, updatedAt: new Date() })
+    .where(eq(assetMaps.id, mapId));
+
+  return apiSuccess({ success: true, showOnDashboard: newValue });
 }

@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { Badge } from '@/components/ui/badge';
 import { Radio } from 'lucide-react';
 
@@ -16,16 +17,17 @@ interface GatewaySidebarProps {
 }
 
 export function GatewaySidebar({ gateways, placedMacs }: GatewaySidebarProps) {
+  const t = useTranslations('assetMap');
   const available = gateways.filter((gw) => !placedMacs.has(gw.gwMac));
 
   return (
     <div className="space-y-2">
       <h3 className="text-sm font-medium text-muted-foreground">
-        배치 가능한 게이트웨이 ({available.length})
+        {t('availableGateways', { count: available.length })}
       </h3>
       {available.length === 0 ? (
         <p className="text-xs text-muted-foreground py-4 text-center">
-          모든 게이트웨이가 배치되었습니다
+          {t('allPlaced')}
         </p>
       ) : (
         <div className="space-y-1 max-h-[60vh] overflow-y-auto">
@@ -48,14 +50,14 @@ export function GatewaySidebar({ gateways, placedMacs }: GatewaySidebarProps) {
                 className={`w-2 h-2 rounded-full shrink-0 ${
                   gw.isConnected ? 'bg-green-500' : 'bg-red-500'
                 }`}
-                title={gw.isConnected ? '연결됨' : '연결 끊김'}
+                title={gw.isConnected ? t('gwConnected') : t('gwDisconnected')}
               />
             </div>
           ))}
         </div>
       )}
       <p className="text-xs text-muted-foreground mt-2">
-        게이트웨이를 드래그하여 맵 위에 배치하세요
+        {t('dragHint')}
       </p>
     </div>
   );

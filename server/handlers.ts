@@ -36,6 +36,15 @@ export async function handleMessage(
       return;
     }
 
+    const cmdNames: Record<number, string> = {
+      0x01: 'GW Info Request',
+      0x02: 'Set OTA URL',
+      0x04: 'Set WS URL',
+      0x05: 'Set Report Interval',
+      0x06: 'Set RSSI Filter',
+      0x07: 'CMD OTA',
+    };
+
     switch (header.dataType) {
       case 0x08: // GW Information Response
         if (header.direction === 0x01 || header.direction === 0x03) {
@@ -48,6 +57,19 @@ export async function handleMessage(
           await handleTagData(data, clientInfo);
         }
         break;
+
+      // 명령 ACK (게이트웨이가 명령 수신 후 응답)
+      case 0x01:
+      case 0x02:
+      case 0x04:
+      case 0x05:
+      case 0x06:
+      case 0x07: {
+        const name = cmdNames[header.dataType] || `0x${header.dataType.toString(16)}`;
+        const status = data.length > 4 ? data[4] : -1; // 보통 0x00=성공
+        console.log(`[WS] 명령 ACK: ${name} (status=${status}) from ${clientInfo.ip}:${clientInfo.port}`);
+        break;
+      }
 
       default:
         console.log(`[WS] 미처리 패킷 타입: 0x${header.dataType.toString(16)} from ${clientInfo.ip}:${clientInfo.port}`);

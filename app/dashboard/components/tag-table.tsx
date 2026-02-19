@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import {
   Table,
   TableBody,
@@ -62,14 +63,10 @@ function tempColor(temp: number): string {
   return '';
 }
 
-function voltBadge(volt: number) {
-  if (volt < 2.0) return <Badge variant="destructive">위험</Badge>;
-  if (volt < 2.5) return <Badge variant="secondary">주의</Badge>;
-  return null;
-}
-
 export function TagTable({ tags, canEdit, onEditSuccess, companyId }: TagTableProps) {
   const router = useRouter();
+  const tTag = useTranslations('tags');
+  const tCommon = useTranslations('common');
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState<TagRow | null>(null);
@@ -85,6 +82,12 @@ export function TagTable({ tags, canEdit, onEditSuccess, companyId }: TagTablePr
   });
   const [loading, setLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+
+  function voltBadge(volt: number) {
+    if (volt < 2.0) return <Badge variant="destructive">{tTag('danger')}</Badge>;
+    if (volt < 2.5) return <Badge variant="secondary">{tTag('caution')}</Badge>;
+    return null;
+  }
 
   useEffect(() => {
     if (canEdit && companyId && editOpen) {
@@ -152,7 +155,7 @@ export function TagTable({ tags, canEdit, onEditSuccess, companyId }: TagTablePr
   if (tags.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">
-        등록된 태그가 없습니다.
+        {tTag('noTags')}
       </div>
     );
   }
@@ -162,14 +165,14 @@ export function TagTable({ tags, canEdit, onEditSuccess, companyId }: TagTablePr
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>MAC 주소</TableHead>
-            <TableHead>이름</TableHead>
-            <TableHead>자산 유형</TableHead>
-            <TableHead>게이트웨이</TableHead>
-            <TableHead>온도</TableHead>
-            <TableHead>전압</TableHead>
+            <TableHead>{tCommon('macAddress')}</TableHead>
+            <TableHead>{tCommon('name')}</TableHead>
+            <TableHead>{tTag('assetType')}</TableHead>
+            <TableHead>{tTag('gateway')}</TableHead>
+            <TableHead>{tTag('temperature')}</TableHead>
+            <TableHead>{tTag('voltage')}</TableHead>
             <TableHead>RSSI</TableHead>
-            <TableHead>마지막 수신</TableHead>
+            <TableHead>{tTag('lastReceived')}</TableHead>
             {canEdit && <TableHead className="w-24" />}
           </TableRow>
         </TableHeader>
@@ -222,7 +225,7 @@ export function TagTable({ tags, canEdit, onEditSuccess, companyId }: TagTablePr
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>태그 수정</DialogTitle>
+            <DialogTitle>{tTag('editTag')}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleEditSubmit} className="space-y-4">
             {editing && (
@@ -231,7 +234,7 @@ export function TagTable({ tags, canEdit, onEditSuccess, companyId }: TagTablePr
               </div>
             )}
             <div className="space-y-2">
-              <Label htmlFor="edit-tagName">이름</Label>
+              <Label htmlFor="edit-tagName">{tCommon('name')}</Label>
               <Input
                 id="edit-tagName"
                 value={form.tagName}
@@ -240,16 +243,16 @@ export function TagTable({ tags, canEdit, onEditSuccess, companyId }: TagTablePr
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-assignedGwMac">할당 게이트웨이</Label>
+              <Label htmlFor="edit-assignedGwMac">{tTag('assignedGateway')}</Label>
               <Select
                 value={form.assignedGwMac || 'none'}
                 onValueChange={(v) => setForm((f) => ({ ...f, assignedGwMac: v === 'none' ? '' : v }))}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="선택 (없음)" />
+                  <SelectValue placeholder={tTag('selectNone')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">없음</SelectItem>
+                  <SelectItem value="none">{tCommon('none')}</SelectItem>
                   {gateways.map((gw) => (
                     <SelectItem key={gw.gwMac} value={gw.gwMac}>
                       {gw.gwName} ({gw.gwMac})
@@ -259,7 +262,7 @@ export function TagTable({ tags, canEdit, onEditSuccess, companyId }: TagTablePr
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-reportInterval">보고 주기 (초)</Label>
+              <Label htmlFor="edit-reportInterval">{tTag('reportInterval')}</Label>
               <Input
                 id="edit-reportInterval"
                 type="number"
@@ -270,21 +273,21 @@ export function TagTable({ tags, canEdit, onEditSuccess, companyId }: TagTablePr
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-assetType">자산 유형</Label>
+              <Label htmlFor="edit-assetType">{tTag('assetType')}</Label>
               <Input
                 id="edit-assetType"
                 value={form.assetType}
                 onChange={(e) => setForm((f) => ({ ...f, assetType: e.target.value }))}
-                placeholder="의료장비, 자산 등"
+                placeholder={tTag('assetTypePlaceholder')}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-description">설명</Label>
+              <Label htmlFor="edit-description">{tCommon('description')}</Label>
               <Input
                 id="edit-description"
                 value={form.description}
                 onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                placeholder="설명 (선택)"
+                placeholder={tCommon('descriptionOptional')}
               />
             </div>
             <div className="flex items-center gap-2">
@@ -295,10 +298,10 @@ export function TagTable({ tags, canEdit, onEditSuccess, companyId }: TagTablePr
                 onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))}
                 className="h-4 w-4 rounded"
               />
-              <Label htmlFor="edit-isActive">활성</Label>
+              <Label htmlFor="edit-isActive">{tCommon('active')}</Label>
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? '저장 중...' : '저장'}
+              {loading ? tCommon('saving') : tCommon('save')}
             </Button>
           </form>
         </DialogContent>
@@ -307,19 +310,19 @@ export function TagTable({ tags, canEdit, onEditSuccess, companyId }: TagTablePr
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>태그 삭제</DialogTitle>
+            <DialogTitle>{tTag('deleteTag')}</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            {deleting?.tagName} ({deleting?.tagMac})을(를) 삭제하시겠습니까?
+            {tTag('deleteConfirm', { name: deleting?.tagName ?? '', mac: deleting?.tagMac ?? '' })}
             <br />
-            센싱 데이터도 함께 삭제됩니다.
+            {tTag('deleteWarning')}
           </p>
           <div className="flex gap-2 justify-end mt-4">
             <Button variant="outline" onClick={() => setDeleteOpen(false)} disabled={deleteLoading}>
-              취소
+              {tCommon('cancel')}
             </Button>
             <Button variant="destructive" onClick={handleDelete} disabled={deleteLoading}>
-              {deleteLoading ? '삭제 중...' : '삭제'}
+              {deleteLoading ? tCommon('deleting') : tCommon('delete')}
             </Button>
           </div>
         </DialogContent>

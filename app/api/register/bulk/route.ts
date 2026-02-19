@@ -5,10 +5,10 @@ import { db } from '@/lib/db';
 import { gateways, tags } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 
-const MAC_REGEX = /^[0-9A-Fa-f]{2}(:[0-9A-Fa-f]{2}){5}$/;
+const MAC_REGEX = /^[0-9A-F]{12}$/;
 function formatMac(v: unknown): string | null {
   if (!v || typeof v !== 'string') return null;
-  const s = v.trim().replace(/-/g, ':').toUpperCase();
+  const s = v.trim().replace(/[:\-]/g, '').toUpperCase();
   return MAC_REGEX.test(s) ? s : null;
 }
 
