@@ -284,7 +284,7 @@ export function AssetMapViewer({
 
         {/* Sidebar (edit mode only) */}
         {isEditing && (
-          <div className="w-full md:w-64 shrink-0">
+          <div className="w-full md:w-64 shrink-0 md:sticky md:top-4 md:self-start">
             <GatewaySidebar
               gateways={allGateways}
               placedMacs={placedMacs}
@@ -294,7 +294,7 @@ export function AssetMapViewer({
 
         {/* Gateway tag popup (view mode only) */}
         {!isEditing && selectedPlacement && (
-          <div className="w-full md:w-72 shrink-0">
+          <div className="w-full md:w-72 shrink-0 md:sticky md:top-4 md:self-start">
             <div className="border rounded-md bg-card shadow-sm">
               {/* Header */}
               <div className="flex items-center justify-between px-3 py-2 border-b">
