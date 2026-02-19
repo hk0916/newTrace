@@ -35,7 +35,16 @@
     "gatewayControl": "Gateway Control",
     "tags": "Tags",
     "assetMap": "Asset Map",
-    "alerts": "Alert Settings"
+    "alerts": "Alert Settings",
+    "settings": "Settings"
+  },
+  "settings": {
+    "title": "System Settings",
+    "timezoneTitle": "Timezone Settings",
+    "timezoneDesc": "Set the timezone used for all timestamps displayed in the dashboard. For isolated networks, set this manually.",
+    "timezone": "Timezone",
+    "timezoneHint": "'Auto' uses the browser's local timezone. For isolated network environments, select the timezone of the deployment region.",
+    "timezonePreview": "Current Time Preview"
   },
   "auth": {
     "platformName": "TraceTag",

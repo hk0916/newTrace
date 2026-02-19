@@ -30,6 +30,7 @@ import {
 } from '@/components/ui/select';
 import { cn, formatMacDisplay, formatDateTime } from '@/lib/utils';
 import { Pencil, Trash2 } from 'lucide-react';
+import { useTimezone } from '../contexts/timezone-context';
 
 export interface TagRow {
   tagMac: string;
@@ -67,6 +68,7 @@ export function TagTable({ tags, canEdit, onEditSuccess, companyId }: TagTablePr
   const router = useRouter();
   const tTag = useTranslations('tags');
   const tCommon = useTranslations('common');
+  const timezone = useTimezone();
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState<TagRow | null>(null);
@@ -202,7 +204,7 @@ export function TagTable({ tags, canEdit, onEditSuccess, companyId }: TagTablePr
                 </TableCell>
                 <TableCell>{tag.latestSensing?.rssi ?? '-'}</TableCell>
                 <TableCell className="text-sm text-muted-foreground">
-                  {formatDateTime(tag.latestSensing?.receivedTime)}
+                  {formatDateTime(tag.latestSensing?.receivedTime, timezone)}
                 </TableCell>
                 {canEdit && (
                   <TableCell>

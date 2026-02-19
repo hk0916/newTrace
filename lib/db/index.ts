@@ -11,6 +11,9 @@ function getDb() {
       max: 3,
       idle_timeout: 10,
       connect_timeout: 10,
+      connection: {
+        TimeZone: 'UTC', // defaultNow() 등 DB 함수가 UTC 기준으로 동작하도록
+      },
     });
     _db = drizzle(client, { schema });
   }

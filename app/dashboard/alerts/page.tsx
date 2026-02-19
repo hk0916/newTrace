@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { useTranslations, useLocale } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,6 +18,8 @@ import Link from 'next/link';
 import { AlertTriangle, Save, Bell, CheckCircle, History } from 'lucide-react';
 import { useCompanyId } from '../hooks/use-company-id';
 import { setCompanyIdCookie } from '@/lib/company-cookie';
+import { useTimezone } from '../contexts/timezone-context';
+import { formatDateTime } from '@/lib/utils';
 
 interface AlertItem {
   type: 'tag_stale' | 'gw_disconnected';
@@ -46,7 +48,7 @@ export default function AlertsPage() {
   const companyIdFromCookie = useCompanyId();
   const t = useTranslations('alerts');
   const tCommon = useTranslations('common');
-  const locale = useLocale();
+
   const [companies, setCompanies] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -68,6 +70,7 @@ export default function AlertsPage() {
   const [ackLoading, setAckLoading] = useState(false);
 
   const isSuper = session?.user?.role === 'super';
+  const timezone = useTimezone();
 
   useEffect(() => {
     async function fetchCompanies() {
@@ -210,7 +213,7 @@ export default function AlertsPage() {
                       <p className="font-medium text-sm">{a.title}</p>
                       <p className="text-sm text-muted-foreground truncate">{a.message}</p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        {new Date(a.since).toLocaleString(locale)} {t('since')}
+                        {formatDateTime(a.since, timezone)} {t('since')}
                       </p>
                     </div>
                     <Button

@@ -35,7 +35,16 @@
     "gatewayControl": "게이트웨이 제어",
     "tags": "태그",
     "assetMap": "자산 맵",
-    "alerts": "알림 설정"
+    "alerts": "알림 설정",
+    "settings": "설정"
+  },
+  "settings": {
+    "title": "시스템 설정",
+    "timezoneTitle": "시간대 (Timezone) 설정",
+    "timezoneDesc": "대시보드에 표시되는 모든 시각의 기준 시간대를 설정합니다. 폐쇄망 환경에서는 직접 설정하세요.",
+    "timezone": "시간대",
+    "timezoneHint": "'자동'은 접속자의 브라우저 시간대를 사용합니다. 폐쇄망 환경에서는 사용 지역의 시간대를 직접 선택하세요.",
+    "timezonePreview": "현재 시각 미리보기"
   },
   "auth": {
     "platformName": "TraceTag",

@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/dialog';
 import { formatMacDisplay, formatDateTime } from '@/lib/utils';
 import { Pencil, Trash2, ChevronDown, ChevronRight, Tag } from 'lucide-react';
+import { useTimezone } from '../contexts/timezone-context';
 
 export interface GatewayRow {
   gwMac: string;
@@ -56,6 +57,7 @@ export function GatewayTable({ gateways, companyId, canEdit, onEditSuccess }: Ga
   const tGw = useTranslations('gateways');
   const tCommon = useTranslations('common');
   const tTag = useTranslations('tags');
+  const timezone = useTimezone();
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState<GatewayRow | null>(null);
@@ -200,7 +202,7 @@ export function GatewayTable({ gateways, companyId, canEdit, onEditSuccess }: Ga
                   </TableCell>
                   <TableCell className="font-mono text-sm">{gw.fwVersion || '-'}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">
-                    {formatDateTime(gw.lastConnectedAt)}
+                    {formatDateTime(gw.lastConnectedAt, timezone)}
                   </TableCell>
                   <TableCell>
                     {count > 0 ? (
@@ -265,7 +267,7 @@ export function GatewayTable({ gateways, companyId, canEdit, onEditSuccess }: Ga
                                     <td className="p-2">{tag.latestSensing?.voltage ?? '-'}</td>
                                     <td className="p-2 text-muted-foreground">
                                       {tag.latestSensing?.receivedTime
-                                        ? formatDateTime(tag.latestSensing.receivedTime)
+                                        ? formatDateTime(tag.latestSensing.receivedTime, timezone)
                                         : '-'}
                                     </td>
                                   </tr>

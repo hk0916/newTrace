@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
-import { useTranslations, useLocale } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,6 +17,8 @@ import {
 import { History } from 'lucide-react';
 import { useCompanyId } from '../../hooks/use-company-id';
 import { setCompanyIdCookie } from '@/lib/company-cookie';
+import { useTimezone } from '../../contexts/timezone-context';
+import { formatDateTime } from '@/lib/utils';
 
 interface AlertHistoryRow {
   id: string;
@@ -45,8 +47,8 @@ export default function AlertHistoryPage() {
   const { data: session } = useSession();
   const companyIdFromCookie = useCompanyId();
   const t = useTranslations('alerts');
-  const tCommon = useTranslations('common'); // for loading, selectCompany
-  const locale = useLocale();
+  const tCommon = useTranslations('common');
+  const timezone = useTimezone();
 
   const isSuper = session?.user?.role === 'super';
   const [companies, setCompanies] = useState<{ id: string; name: string }[]>([]);
@@ -174,11 +176,11 @@ export default function AlertHistoryPage() {
                           <p className="truncate text-muted-foreground">{row.alertMessage}</p>
                         </td>
                         <td className="py-2 pr-4 whitespace-nowrap">
-                          {new Date(row.triggeredAt).toLocaleString(locale)}
+                          {formatDateTime(row.triggeredAt, timezone)}
                         </td>
                         <td className="py-2 pr-4 whitespace-nowrap hidden lg:table-cell">
                           {row.resolvedAt
-                            ? new Date(row.resolvedAt).toLocaleString(locale)
+                            ? formatDateTime(row.resolvedAt, timezone)
                             : <span className="text-muted-foreground">-</span>}
                         </td>
                         <td className="py-2 pr-4 hidden lg:table-cell">

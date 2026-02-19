@@ -5,10 +5,33 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-/** 서버/클라이언트 일치용 날짜 포맷 (hydration 방지) */
-export function formatDateTime(date: Date | string | null | undefined): string {
+/**
+ * 날짜 포맷 함수
+ * @param timezone 'browser' (기본, 브라우저 로컬 시간) 또는 IANA timezone string (예: 'Asia/Seoul')
+ */
+export function formatDateTime(date: Date | string | null | undefined, timezone?: string): string {
   if (!date) return '-';
   const d = new Date(date);
+  if (!isFinite(d.getTime())) return '-';
+
+  if (timezone && timezone !== 'browser') {
+    try {
+      return new Intl.DateTimeFormat('ko-KR', {
+        timeZone: timezone,
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+      }).format(d);
+    } catch {
+      // 잘못된 timezone이면 로컬로 fallback
+    }
+  }
+
+  // 기본: 브라우저 로컬 timezone
   const y = d.getFullYear();
   const m = d.getMonth() + 1;
   const day = d.getDate();

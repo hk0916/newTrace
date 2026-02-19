@@ -6,9 +6,10 @@ import { signOut } from 'next-auth/react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { LayoutDashboard, Radio, Tag, AlertTriangle, LogOut, Building2, CirclePlus, MapPin, Settings2 } from 'lucide-react';
+import { LayoutDashboard, Radio, Tag, AlertTriangle, LogOut, Building2, CirclePlus, MapPin, Settings2, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { LocaleSwitcher } from '@/components/locale-switcher';
+import { TimezoneProvider } from '../contexts/timezone-context';
 
 interface DashboardShellProps {
   user: {
@@ -29,6 +30,7 @@ const navKeys = [
   { href: '/dashboard/tags', key: 'tags', icon: Tag },
   { href: '/dashboard/asset-map', key: 'assetMap', icon: MapPin },
   { href: '/dashboard/alerts', key: 'alerts', icon: AlertTriangle },
+  { href: '/dashboard/settings', key: 'settings', icon: Settings },
 ] as const;
 
 export function DashboardShell({ user, companyId, children }: DashboardShellProps) {
@@ -39,6 +41,7 @@ export function DashboardShell({ user, companyId, children }: DashboardShellProp
   const effectiveCompanyId = companyId ?? user.companyId;
 
   return (
+    <TimezoneProvider>
     <div className="flex h-screen overflow-hidden">
       {/* Sidebar */}
       <aside className="hidden w-64 border-r bg-muted/30 md:block">
@@ -110,5 +113,6 @@ export function DashboardShell({ user, companyId, children }: DashboardShellProp
         </div>
       </main>
     </div>
+    </TimezoneProvider>
   );
 }
