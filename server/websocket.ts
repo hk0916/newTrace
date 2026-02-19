@@ -20,10 +20,15 @@ httpServer.listen({ port: WS_PORT, reuseAddr: true }, () => {
 // MAC ↔ 클라이언트 정보 매핑 (연결 해제 시 MAC 조회용)
 const clientMacMap = new Map<WebSocket, string>();
 
+// Heartbeat: pong 응답 여부 추적
+const aliveMap = new WeakMap<WebSocket, boolean>();
+
 // 명령 HTTP API 시작
 startCommandApi();
 
 const REGISTRATION_TIMEOUT_MS = 30_000; // 30초 내 0x08 미수신 시 연결 종료
+const HEARTBEAT_INTERVAL_MS   = 30_000; // 30초마다 ping 전송
+const HEARTBEAT_TIMEOUT_MS    = 10_000; // 10초 내 pong 미응답 시 강제 종료
 
 wss.on('connection', (ws: WebSocket, req) => {
   const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim()
@@ -33,6 +38,12 @@ wss.on('connection', (ws: WebSocket, req) => {
 
   const clientInfo: ClientInfo = { ip, port };
   console.log(`[WS Server] 새 연결: ${ip}:${port}`);
+
+  // Heartbeat 초기화: 새 연결은 살아있는 것으로 간주
+  aliveMap.set(ws, true);
+  ws.on('pong', () => {
+    aliveMap.set(ws, true);
+  });
 
   // 등록 타임아웃: 0x08 미수신 시 연결 종료 (중복/미등록 연결 정리)
   let regTimeout: ReturnType<typeof setTimeout> | null = setTimeout(() => {
@@ -90,10 +101,30 @@ wss.on('error', (error) => {
   console.error('[WS Server] WebSocket 에러:', error);
 });
 
-// 상태 모니터링 (30초마다)
+// 상태 모니터링 + Heartbeat (30초마다)
 setInterval(() => {
   console.log(`[WS Server] 연결된 게이트웨이: ${connectedGateways.size}개, 총 클라이언트: ${wss.clients.size}개`);
-}, 30000);
+
+  for (const client of wss.clients) {
+    if (aliveMap.get(client) === false) {
+      // 이전 ping에 응답 없음 → 즉시 강제 종료
+      console.log(`[WS Server] Heartbeat 미응답 - 연결 강제 종료`);
+      client.terminate();
+      continue;
+    }
+    // pong 대기 상태로 전환 후 ping 전송
+    aliveMap.set(client, false);
+    client.ping();
+
+    // 10초 내 pong 없으면 강제 종료
+    setTimeout(() => {
+      if (aliveMap.get(client) === false) {
+        console.log(`[WS Server] Heartbeat 타임아웃 - 연결 강제 종료`);
+        client.terminate();
+      }
+    }, HEARTBEAT_TIMEOUT_MS);
+  }
+}, HEARTBEAT_INTERVAL_MS);
 
 // 종료 처리
 process.on('SIGINT', () => {

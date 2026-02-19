@@ -23,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus } from 'lucide-react';
+import { Plus, RefreshCw } from 'lucide-react';
 import { useCompanyId } from '../hooks/use-company-id';
 import { setCompanyIdCookie } from '@/lib/company-cookie';
 
@@ -34,11 +34,16 @@ function GatewaysPageContent() {
   const companyId = useCompanyId();
   const tGw = useTranslations('gateways');
   const tCommon = useTranslations('common');
+  const tDashboard = useTranslations('dashboard');
   const [gateways, setGateways] = useState<GatewayRow[]>([]);
   const [companies, setCompanies] = useState<{ id: string; name: string }[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ gwMac: '', gwName: '', location: '', description: '' });
+
+  const REFRESH_INTERVAL = 30;
+  const [countdown, setCountdown] = useState(REFRESH_INTERVAL);
+  const [refreshing, setRefreshing] = useState(false);
 
   const search = searchParams.get('search') || '';
   const order = searchParams.get('order') || 'desc';
@@ -70,7 +75,32 @@ function GatewaysPageContent() {
 
   useEffect(() => {
     fetchGateways();
+    setCountdown(REFRESH_INTERVAL);
   }, [fetchGateways]);
+
+  useEffect(() => {
+    const tick = setInterval(() => {
+      setCountdown((prev) => (prev <= 1 ? 0 : prev - 1));
+    }, 1000);
+    return () => clearInterval(tick);
+  }, []);
+
+  useEffect(() => {
+    if (countdown === 0) {
+      setRefreshing(true);
+      fetchGateways().finally(() => {
+        setRefreshing(false);
+        setCountdown(REFRESH_INTERVAL);
+      });
+    }
+  }, [countdown, fetchGateways]);
+
+  async function handleManualRefresh() {
+    setRefreshing(true);
+    setCountdown(REFRESH_INTERVAL);
+    await fetchGateways();
+    setRefreshing(false);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -117,6 +147,10 @@ function GatewaysPageContent() {
             </SelectContent>
           </Select>
         )}
+        <Button variant="outline" size="sm" onClick={handleManualRefresh} disabled={refreshing}>
+          <RefreshCw className={`mr-2 h-4 w-4${refreshing ? ' animate-spin' : ''}`} />
+          {tDashboard('refresh', { countdown })}
+        </Button>
         <TableFilter searchPlaceholder={tGw('searchPlaceholder')} />
         {(session?.user?.role === 'super' || session?.user?.role === 'admin') && (
         <Dialog open={open} onOpenChange={setOpen}>
