@@ -52,12 +52,17 @@ interface GatewayTableProps {
   onEditSuccess?: () => void;
 }
 
+const PAGE_SIZE = 10;
+
 export function GatewayTable({ gateways, companyId, canEdit, onEditSuccess }: GatewayTableProps) {
   const router = useRouter();
   const tGw = useTranslations('gateways');
   const tCommon = useTranslations('common');
   const tTag = useTranslations('tags');
   const timezone = useTimezone();
+  const [page, setPage] = useState(1);
+  const totalPages = Math.ceil(gateways.length / PAGE_SIZE);
+  const pagedGateways = gateways.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState<GatewayRow | null>(null);
@@ -167,7 +172,7 @@ export function GatewayTable({ gateways, companyId, canEdit, onEditSuccess }: Ga
           </TableRow>
         </TableHeader>
         <TableBody>
-          {gateways.map((gw) => {
+          {pagedGateways.map((gw) => {
             const count = Number(gw.tagCount) || 0;
             const isExpanded = expandedGw === gw.gwMac;
             const tagList = tagsByGw[gw.gwMac];
@@ -287,6 +292,23 @@ export function GatewayTable({ gateways, companyId, canEdit, onEditSuccess }: Ga
           })}
         </TableBody>
       </Table>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between px-2 py-3 border-t">
+          <span className="text-sm text-muted-foreground">
+            {gateways.length}개 중 {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, gateways.length)}
+          </span>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setPage((p) => p - 1)} disabled={page === 1}>
+              이전
+            </Button>
+            <span className="text-sm">{page} / {totalPages}</span>
+            <Button variant="outline" size="sm" onClick={() => setPage((p) => p + 1)} disabled={page === totalPages}>
+              다음
+            </Button>
+          </div>
+        </div>
+      )}
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent>

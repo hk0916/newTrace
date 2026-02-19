@@ -64,11 +64,16 @@ function tempColor(temp: number): string {
   return '';
 }
 
+const PAGE_SIZE = 10;
+
 export function TagTable({ tags, canEdit, onEditSuccess, companyId }: TagTableProps) {
   const router = useRouter();
   const tTag = useTranslations('tags');
   const tCommon = useTranslations('common');
   const timezone = useTimezone();
+  const [page, setPage] = useState(1);
+  const totalPages = Math.ceil(tags.length / PAGE_SIZE);
+  const pagedTags = tags.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState<TagRow | null>(null);
@@ -179,7 +184,7 @@ export function TagTable({ tags, canEdit, onEditSuccess, companyId }: TagTablePr
           </TableRow>
         </TableHeader>
         <TableBody>
-          {tags.map((tag) => {
+          {pagedTags.map((tag) => {
             const temp = tag.latestSensing?.temperature ? parseFloat(tag.latestSensing.temperature) : null;
             const volt = tag.latestSensing?.voltage ? parseFloat(tag.latestSensing.voltage) : null;
 
@@ -223,6 +228,23 @@ export function TagTable({ tags, canEdit, onEditSuccess, companyId }: TagTablePr
           })}
         </TableBody>
       </Table>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between px-2 py-3 border-t">
+          <span className="text-sm text-muted-foreground">
+            {tags.length}개 중 {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, tags.length)}
+          </span>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setPage((p) => p - 1)} disabled={page === 1}>
+              이전
+            </Button>
+            <span className="text-sm">{page} / {totalPages}</span>
+            <Button variant="outline" size="sm" onClick={() => setPage((p) => p + 1)} disabled={page === totalPages}>
+              다음
+            </Button>
+          </div>
+        </div>
+      )}
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent>
