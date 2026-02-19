@@ -187,15 +187,28 @@ async function migrateTags(pool: mysql.Pool): Promise<number> {
     // 혹시 누락된 company가 있으면 자동 생성
     await db.insert(companies).values({ id: companyId, name: companyId }).onConflictDoNothing();
 
-    await db.insert(tags).values({
-      tagMac: mac,
-      tagName: name,
-      companyId,
-      assignedGwMac: assignedGwMac || null,
-      reportInterval: 60,
-      assetType,
-      isActive,
-    }).onConflictDoNothing();
+    try {
+      await db.insert(tags).values({
+        tagMac: mac,
+        tagName: name,
+        companyId,
+        assignedGwMac: assignedGwMac || null,
+        reportInterval: 60,
+        assetType,
+        isActive,
+      }).onConflictDoNothing();
+    } catch {
+      // assignedGwMac이 gateways에 없는 경우 null로 재시도
+      await db.insert(tags).values({
+        tagMac: mac,
+        tagName: name,
+        companyId,
+        assignedGwMac: null,
+        reportInterval: 60,
+        assetType,
+        isActive,
+      }).onConflictDoNothing();
+    }
 
     inserted++;
   }
