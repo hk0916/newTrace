@@ -4,8 +4,8 @@ import { useState, useRef, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Save, Pencil, Eye, Palette, X, Wifi, WifiOff } from 'lucide-react';
-import { GatewayPlacement, type PlacementData, type GatewayAreaColor, AVAILABLE_COLORS } from './gateway-placement';
+import { ArrowLeft, Save, Pencil, Eye, X, Wifi, WifiOff } from 'lucide-react';
+import { GatewayPlacement, type PlacementData } from './gateway-placement';
 import { GatewaySidebar, type GatewayItem } from './gateway-sidebar';
 import { useTimezone } from '../../contexts/timezone-context';
 import { formatDateTime } from '@/lib/utils';
@@ -57,10 +57,6 @@ export function AssetMapViewer({
   const [isEditing, setIsEditing] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [areaColor, setAreaColor] = useState<GatewayAreaColor>(() => {
-    const fromDb = initialGatewayAreaColor;
-    return AVAILABLE_COLORS.find((c) => c.id === fromDb) ?? AVAILABLE_COLORS[0];
-  });
   const [selectedPlacement, setSelectedPlacement] = useState<PlacementData | null>(null);
   const [popupTags, setPopupTags] = useState<TagPopupItem[]>([]);
   const [popupLoading, setPopupLoading] = useState(false);
@@ -78,18 +74,6 @@ export function AssetMapViewer({
     setPopupLoading(false);
   }, [companyId]);
 
-  const handleColorChange = useCallback(async (color: GatewayAreaColor) => {
-    setAreaColor(color);
-    const res = await fetch(`/api/asset-maps/${mapId}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: mapName, gatewayAreaColor: color.id }),
-    });
-    if (!res.ok) {
-      const data = await res.json().catch(() => null);
-      alert(data?.error || t('colorSaveFailed'));
-    }
-  }, [mapId, mapName, t]);
 
   const placedMacs = new Set(placements.map((p) => p.gwMac));
 
@@ -155,8 +139,8 @@ export function AssetMapViewer({
         yPercent: p.yPercent,
         widthPercent: p.widthPercent,
         heightPercent: p.heightPercent,
+        color: p.color ?? 'amber',
       })),
-      gatewayAreaColor: areaColor.id,
     };
 
     const res = await fetch(`/api/asset-maps/${mapId}/placements`, {
@@ -193,28 +177,6 @@ export function AssetMapViewer({
           )}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          {placements.length > 0 && (
-            <div className="flex items-center gap-1.5">
-              <Palette className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">{t('areaColor')}</span>
-              {AVAILABLE_COLORS.map((c) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  title={c.label}
-                  className={`w-5 h-5 rounded border-2 transition-all ${
-                    areaColor.id === c.id
-                      ? 'border-foreground scale-110'
-                      : 'border-transparent hover:scale-105'
-                  }`}
-                  style={{
-                    backgroundColor: c.id === 'amber' ? '#f59e0b' : c.id === 'emerald' ? '#34d399' : c.id === 'rose' ? '#fb7185' : c.id === 'cyan' ? '#22d3ee' : c.id === 'violet' ? '#a78bfa' : '#a3e635',
-                  }}
-                  onClick={() => handleColorChange(c)}
-                />
-              ))}
-            </div>
-          )}
           {canEdit && (
             <>
               <Button
@@ -274,7 +236,6 @@ export function AssetMapViewer({
                   onUpdate={handleUpdate}
                   onRemove={handleRemove}
                   isEditing={isEditing}
-                  colorPreset={areaColor}
                   onViewClick={!isEditing ? () => handleGatewayClick(p) : undefined}
                 />
               ))}

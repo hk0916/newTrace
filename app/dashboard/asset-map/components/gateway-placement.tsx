@@ -16,7 +16,17 @@ export interface PlacementData {
   heightPercent: number;
   tagCount: number;
   isConnected: boolean;
+  color?: string;
 }
+
+const COLOR_HEX: Record<string, string> = {
+  amber: '#f59e0b',
+  emerald: '#34d399',
+  rose: '#fb7185',
+  cyan: '#22d3ee',
+  violet: '#a78bfa',
+  lime: '#a3e635',
+};
 
 export const AVAILABLE_COLORS = [
   { id: 'amber', connected: 'border-amber-400 bg-amber-400/35', disconnected: 'border-amber-600/80 bg-amber-500/25', label: 'Amber' },
@@ -35,8 +45,6 @@ interface GatewayPlacementProps {
   onUpdate: (updated: PlacementData) => void;
   onRemove: (id: string) => void;
   isEditing: boolean;
-  /** 선택된 색상 (기본: amber - 파란 배경과 대비) */
-  colorPreset?: GatewayAreaColor;
   /** 보기 모드에서 클릭 시 콜백 */
   onViewClick?: () => void;
 }
@@ -47,7 +55,6 @@ export function GatewayPlacement({
   onUpdate,
   onRemove,
   isEditing,
-  colorPreset = AVAILABLE_COLORS[0],
   onViewClick,
 }: GatewayPlacementProps) {
   const isDragging = useRef(false);
@@ -153,7 +160,8 @@ export function GatewayPlacement({
   );
 
   const t = useTranslations('assetMap');
-  const colorClass = placement.isConnected ? colorPreset.connected : colorPreset.disconnected;
+  const activeColor = AVAILABLE_COLORS.find((c) => c.id === (placement.color ?? 'amber')) ?? AVAILABLE_COLORS[0];
+  const colorClass = placement.isConnected ? activeColor.connected : activeColor.disconnected;
 
   return (
     <div
@@ -211,10 +219,36 @@ export function GatewayPlacement({
         </button>
       )}
 
+      {/* Per-placement color picker (edit mode, visible on hover) */}
+      {isEditing && (
+        <div
+          className="absolute bottom-1 left-1/2 -translate-x-1/2 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          {AVAILABLE_COLORS.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              title={c.label}
+              className={`w-3 h-3 rounded-full transition-transform hover:scale-125 ${
+                (placement.color ?? 'amber') === c.id
+                  ? 'ring-2 ring-white ring-offset-[1px] ring-offset-black/30 scale-110'
+                  : ''
+              }`}
+              style={{ backgroundColor: COLOR_HEX[c.id] }}
+              onClick={(e) => {
+                e.stopPropagation();
+                onUpdate({ ...placement, color: c.id });
+              }}
+            />
+          ))}
+        </div>
+      )}
+
       {/* Resize handle (edit mode only) */}
       {isEditing && (
         <div
-          className="absolute bottom-0 right-0 w-3 h-3 bg-amber-600 cursor-se-resize rounded-tl-sm opacity-50 hover:opacity-100 transition-opacity"
+          className="absolute bottom-0 right-0 w-3 h-3 bg-white/60 cursor-se-resize rounded-tl-sm opacity-50 hover:opacity-100 transition-opacity"
           onMouseDown={startResize}
           onTouchStart={startResize}
         />

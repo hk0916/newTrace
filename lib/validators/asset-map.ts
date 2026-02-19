@@ -19,6 +19,7 @@ export const upsertMapGatewaySchema = z.object({
   yPercent: z.number().min(0).max(100),
   widthPercent: z.number().min(1).max(100),
   heightPercent: z.number().min(1).max(100),
+  color: z.enum(['amber', 'emerald', 'rose', 'cyan', 'violet', 'lime']).optional(),
 });
 
 export type UpsertMapGatewayInput = z.infer<typeof upsertMapGatewaySchema>;

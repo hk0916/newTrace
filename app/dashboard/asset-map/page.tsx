@@ -115,6 +115,7 @@ function AssetMapPageContent() {
           heightPercent: Number(p.heightPercent),
           tagCount: Number(p.tagCount) || 0,
           isConnected: p.isConnected as boolean ?? false,
+          color: (p.color as string) ?? 'amber',
         })
       );
 

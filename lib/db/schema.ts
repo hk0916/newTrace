@@ -118,6 +118,7 @@ export const assetMapGateways = pgTable('asset_map_gateways', {
   yPercent: decimal('y_percent', { precision: 7, scale: 4 }).notNull(),
   widthPercent: decimal('width_percent', { precision: 7, scale: 4 }).notNull().default('10'),
   heightPercent: decimal('height_percent', { precision: 7, scale: 4 }).notNull().default('8'),
+  color: varchar('color', { length: 20 }).notNull().default('amber'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });

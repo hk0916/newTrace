@@ -4,7 +4,7 @@ import { useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { GatewayPlacement, type PlacementData, type GatewayAreaColor, AVAILABLE_COLORS } from '../asset-map/components/gateway-placement';
+import { GatewayPlacement } from '../asset-map/components/gateway-placement';
 import { Map, Star } from 'lucide-react';
 
 interface MapPreviewData {
@@ -24,6 +24,7 @@ interface MapPreviewData {
     heightPercent: number;
     isConnected: boolean;
     tagCount: number;
+    color?: string;
   }[];
 }
 
@@ -38,8 +39,6 @@ function MapCard({ map }: { map: MapPreviewData }) {
   const router = useRouter();
   const tMap = useTranslations('assetMap');
   const aspectRatio = (map.imageHeight / map.imageWidth) * 100;
-  const colorPreset: GatewayAreaColor =
-    AVAILABLE_COLORS.find((c) => c.id === map.gatewayAreaColor) ?? AVAILABLE_COLORS[0];
 
   const noop = () => {};
 
@@ -76,12 +75,11 @@ function MapCard({ map }: { map: MapPreviewData }) {
             {map.placements.map((p) => (
               <GatewayPlacement
                 key={p.id}
-                placement={p}
+                placement={{ ...p, color: p.color ?? map.gatewayAreaColor ?? 'amber' }}
                 containerRef={containerRef}
                 onUpdate={noop}
                 onRemove={noop}
                 isEditing={false}
-                colorPreset={colorPreset}
               />
             ))}
           </div>

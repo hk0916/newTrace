@@ -51,6 +51,7 @@ export async function PUT(
           yPercent: String(p.yPercent),
           widthPercent: String(p.widthPercent),
           heightPercent: String(p.heightPercent),
+          color: p.color ?? 'amber',
         }))
       );
     }

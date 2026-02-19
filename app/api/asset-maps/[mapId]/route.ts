@@ -38,6 +38,7 @@ export async function GET(
       yPercent: assetMapGateways.yPercent,
       widthPercent: assetMapGateways.widthPercent,
       heightPercent: assetMapGateways.heightPercent,
+      color: assetMapGateways.color,
       isConnected: gatewayStatus.isConnected,
       tagCount: sql<number>`(SELECT COUNT(*) FROM tags WHERE assigned_gw_mac = "asset_map_gateways"."gw_mac" AND is_active = true)`.as('tag_count'),
     })
