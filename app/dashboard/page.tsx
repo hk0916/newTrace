@@ -230,6 +230,7 @@ export default async function DashboardPage({
             ...gw,
             lastConnectedAt: gw.lastConnectedAt?.toISOString() ?? null,
           }))}
+          companyId={cid}
           canEdit={session!.user.role === 'super' || session!.user.role === 'admin'}
         />
       </div>
