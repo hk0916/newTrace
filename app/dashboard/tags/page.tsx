@@ -23,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus } from 'lucide-react';
+import { Plus, RefreshCw } from 'lucide-react';
 import { useCompanyId } from '../hooks/use-company-id';
 import { setCompanyIdCookie } from '@/lib/company-cookie';
 
@@ -34,10 +34,15 @@ function TagsPageContent() {
   const companyId = useCompanyId();
   const tTag = useTranslations('tags');
   const tCommon = useTranslations('common');
+  const tDashboard = useTranslations('dashboard');
   const [tags, setTags] = useState<TagRow[]>([]);
   const [companies, setCompanies] = useState<{ id: string; name: string }[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const REFRESH_INTERVAL = 30;
+  const [countdown, setCountdown] = useState(REFRESH_INTERVAL);
+  const [refreshing, setRefreshing] = useState(false);
   const [form, setForm] = useState({
     tagMac: '',
     tagName: '',
@@ -77,7 +82,32 @@ function TagsPageContent() {
 
   useEffect(() => {
     fetchTags();
+    setCountdown(REFRESH_INTERVAL);
   }, [fetchTags]);
+
+  useEffect(() => {
+    const tick = setInterval(() => {
+      setCountdown((prev) => (prev <= 1 ? 0 : prev - 1));
+    }, 1000);
+    return () => clearInterval(tick);
+  }, []);
+
+  useEffect(() => {
+    if (countdown === 0) {
+      setRefreshing(true);
+      fetchTags().finally(() => {
+        setRefreshing(false);
+        setCountdown(REFRESH_INTERVAL);
+      });
+    }
+  }, [countdown, fetchTags]);
+
+  async function handleManualRefresh() {
+    setRefreshing(true);
+    setCountdown(REFRESH_INTERVAL);
+    await fetchTags();
+    setRefreshing(false);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -129,6 +159,10 @@ function TagsPageContent() {
             </SelectContent>
           </Select>
         )}
+          <Button variant="outline" size="sm" onClick={handleManualRefresh} disabled={refreshing}>
+            <RefreshCw className={`mr-2 h-4 w-4${refreshing ? ' animate-spin' : ''}`} />
+            {tDashboard('refresh', { countdown })}
+          </Button>
           <TableFilter searchPlaceholder={tTag('searchPlaceholder')} />
           {(session?.user?.role === 'super' || session?.user?.role === 'admin') && (
           <Dialog open={open} onOpenChange={setOpen}>
