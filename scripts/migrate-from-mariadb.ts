@@ -17,8 +17,13 @@ import * as dotenv from 'dotenv';
 dotenv.config({ path: '.env.local' });
 
 import mysql from 'mysql2/promise';
+import { hash } from 'bcryptjs';
+import { v4 as uuid } from 'uuid';
 import { db } from '../lib/db';
-import { companies, gateways, gatewayStatus, tags } from '../lib/db/schema';
+import { companies, gateways, gatewayStatus, tags, users } from '../lib/db/schema';
+
+// 임시 비밀번호 (마이그레이션 후 각 사용자에게 공지)
+const TEMP_PASSWORD = 'Tracetag2024!';
 
 const OLD_DB_HOST     = process.env.OLD_DB_HOST     || '127.0.0.1';
 const OLD_DB_PORT     = parseInt(process.env.OLD_DB_PORT || '3306');
@@ -217,6 +222,51 @@ async function migrateTags(pool: mysql.Pool): Promise<number> {
   return inserted;
 }
 
+async function migrateUsers(pool: mysql.Pool): Promise<number> {
+  console.log('\n=== 5단계: 사용자 마이그레이션 (users) ===');
+  console.log(`  임시 비밀번호: ${TEMP_PASSWORD}`);
+
+  const [rows] = await pool.query(`
+    SELECT id, email, company, isadmin FROM users
+  `) as [Record<string, unknown>[], mysql.FieldPacket[]];
+
+  const tempHash = await hash(TEMP_PASSWORD, 12);
+  let inserted = 0;
+  let skipped = 0;
+
+  for (const row of rows) {
+    let email = (row['email'] as string)?.trim();
+    if (!email) { skipped++; continue; }
+
+    // 이메일 형식이 아니면 @tracetag.local 붙이기
+    if (!email.includes('@')) {
+      email = `${email}@tracetag.local`;
+    }
+
+    const companyId = normalizeCompany(row['company'] as string);
+    const isAdmin = (row['isadmin'] as number) === 1;
+    const role = isAdmin ? 'admin' : 'user';
+
+    // companies 테이블에 없으면 자동 생성
+    await db.insert(companies).values({ id: companyId, name: companyId }).onConflictDoNothing();
+
+    await db.insert(users).values({
+      id: uuid(),
+      email,
+      name: email.split('@')[0],
+      password: tempHash,
+      companyId,
+      role,
+    }).onConflictDoNothing(); // 이미 같은 email이 있으면 스킵
+
+    inserted++;
+    console.log(`  [USER] ${email} (${role} / ${companyId})`);
+  }
+
+  console.log(`사용자 마이그레이션 완료: ${inserted}개 삽입, ${skipped}개 스킵`);
+  return inserted;
+}
+
 async function main(): Promise<void> {
   // SOCKET_PATH 환경변수가 있으면 소켓 연결 (로컬 root 접속 시)
   const socketPath = process.env.SOCKET_PATH;
@@ -237,8 +287,10 @@ async function main(): Promise<void> {
   await migrateGateways(pool);
   await migrateGatewayStatus(pool);
   await migrateTags(pool);
+  await migrateUsers(pool);
 
   console.log('\n✓ 전체 마이그레이션 완료');
+  console.log(`  모든 계정 임시 비밀번호: ${TEMP_PASSWORD}`);
   await pool.end();
   process.exit(0);
 }
