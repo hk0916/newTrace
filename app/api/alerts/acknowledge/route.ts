@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
     .limit(1);
   if (!company) return apiError('회사를 찾을 수 없습니다', 404);
 
-  const validTypes = ['tag_stale', 'gw_disconnected'];
+  const validTypes = ['tag_stale', 'gw_disconnected', 'high_temp', 'low_temp', 'low_voltage'];
   for (const k of body.keys!) {
     if (!validTypes.includes(k.type)) {
       return apiError(`잘못된 alert type: ${k.type}`, 400);

@@ -102,7 +102,11 @@ export default function AlertHistoryPage() {
 
   function getTypeBadge(alertType: string) {
     if (alertType === 'tag_stale') return <Badge variant="outline">{t('typeTagStale')}</Badge>;
-    return <Badge variant="outline">{t('typeGwDisconnected')}</Badge>;
+    if (alertType === 'gw_disconnected') return <Badge variant="outline">{t('typeGwDisconnected')}</Badge>;
+    if (alertType === 'high_temp') return <Badge variant="destructive">{t('typeHighTemp')}</Badge>;
+    if (alertType === 'low_temp') return <Badge className="bg-blue-500 text-white">{t('typeLowTemp')}</Badge>;
+    if (alertType === 'low_voltage') return <Badge variant="secondary">{t('typeLowVoltage')}</Badge>;
+    return <Badge variant="outline">{alertType}</Badge>;
   }
 
   return (

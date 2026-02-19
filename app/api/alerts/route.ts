@@ -14,7 +14,7 @@ import {
 import { getSession, requireAuth, resolveCompanyId, apiError, apiSuccess } from '@/lib/api-utils';
 
 export type AlertItem = {
-  type: 'tag_stale' | 'gw_disconnected';
+  type: 'tag_stale' | 'gw_disconnected' | 'high_temp' | 'low_temp' | 'low_voltage';
   key: string;
   title: string;
   message: string;
@@ -43,6 +43,12 @@ export async function GET(req: NextRequest) {
   const gwHours = settings?.gwDisconnectHours ?? 24;
   const enableTag = settings?.enableTagHeartbeatAlert ?? true;
   const enableGw = settings?.enableGwDisconnectAlert ?? true;
+  const enableHighTemp = settings?.enableHighTempAlert ?? true;
+  const enableLowTemp = settings?.enableLowTempAlert ?? true;
+  const enableLowVoltage = settings?.enableLowVoltageAlert ?? true;
+  const highTempThreshold = parseFloat(settings?.highTempThreshold ?? '40');
+  const lowTempThreshold = parseFloat(settings?.lowTempThreshold ?? '0');
+  const lowVoltageThreshold = parseFloat(settings?.lowVoltageThreshold ?? '2.5');
 
   const alerts: AlertItem[] = [];
   const now = new Date();
@@ -114,7 +120,62 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // 3. 이번 세션에서 확인한 알림 제외
+  // 3. 온도/전압 알림 (태그별 최신 센싱 데이터 기준)
+  if (enableHighTemp || enableLowTemp || enableLowVoltage) {
+    const tagList = await db
+      .select({ tagMac: tags.tagMac, tagName: tags.tagName })
+      .from(tags)
+      .where(and(eq(tags.companyId, companyId), eq(tags.isActive, true)));
+
+    for (const tag of tagList) {
+      const [latest] = await db
+        .select({
+          temperature: tagSensingData.temperature,
+          voltage: tagSensingData.voltage,
+          receivedTime: tagSensingData.receivedTime,
+        })
+        .from(tagSensingData)
+        .where(eq(tagSensingData.tagMac, tag.tagMac))
+        .orderBy(desc(tagSensingData.receivedTime))
+        .limit(1);
+
+      if (!latest) continue;
+
+      const temp = latest.temperature !== null ? parseFloat(latest.temperature) : null;
+      const volt = latest.voltage !== null ? parseFloat(latest.voltage) : null;
+      const since = (latest.receivedTime instanceof Date ? latest.receivedTime : new Date(latest.receivedTime)).toISOString();
+
+      if (enableHighTemp && temp !== null && temp > highTempThreshold) {
+        alerts.push({
+          type: 'high_temp',
+          key: tag.tagMac,
+          title: '고온 경보',
+          message: `${tag.tagName} (${tag.tagMac}) - 온도 ${temp.toFixed(1)}°C (기준: ${highTempThreshold}°C 초과)`,
+          since,
+        });
+      }
+      if (enableLowTemp && temp !== null && temp < lowTempThreshold) {
+        alerts.push({
+          type: 'low_temp',
+          key: tag.tagMac,
+          title: '저온 경보',
+          message: `${tag.tagName} (${tag.tagMac}) - 온도 ${temp.toFixed(1)}°C (기준: ${lowTempThreshold}°C 미만)`,
+          since,
+        });
+      }
+      if (enableLowVoltage && volt !== null && volt < lowVoltageThreshold) {
+        alerts.push({
+          type: 'low_voltage',
+          key: tag.tagMac,
+          title: '저전압 경보',
+          message: `${tag.tagName} (${tag.tagMac}) - 전압 ${volt.toFixed(2)}V (기준: ${lowVoltageThreshold}V 미만)`,
+          since,
+        });
+      }
+    }
+  }
+
+  // 4. 이번 세션에서 확인한 알림 제외
   const acknowledged = await db
     .select({ alertType: alertAcknowledgments.alertType, alertKey: alertAcknowledgments.alertKey })
     .from(alertAcknowledgments)
