@@ -1,10 +1,10 @@
-import { eq, ne, and, asc, desc, sql } from 'drizzle-orm';
+import { eq, and, desc, sql } from 'drizzle-orm';
 import { Suspense } from 'react';
 import { cookies } from 'next/headers';
 import { getTranslations } from 'next-intl/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { companies, gateways, gatewayStatus, tags, tagSensingData, assetMaps, assetMapGateways } from '@/lib/db/schema';
+import { gateways, gatewayStatus, tags, tagSensingData, assetMaps, assetMapGateways } from '@/lib/db/schema';
 import { COMPANY_COOKIE_NAME } from '@/lib/company-cookie';
 import { StatsCards } from './components/stats-cards';
 import { GatewayTable } from './components/gateway-table';
@@ -77,20 +77,11 @@ export default async function DashboardPage({
     alerts: { lowVoltage: 0 },
   };
 
-  // 회사별 대시보드 맵 ID
-  const [companyRow] = await db
-    .select({ dashboardMapId: companies.dashboardMapId })
-    .from(companies)
-    .where(eq(companies.id, cid))
-    .limit(1);
-
-  const dashboardMapId = companyRow?.dashboardMapId ?? null;
-
-  // 자산맵 데이터
+  // 대시보드에 표시 선택된 자산맵만 조회
   const mapList = await db
     .select()
     .from(assetMaps)
-    .where(eq(assetMaps.companyId, cid));
+    .where(and(eq(assetMaps.companyId, cid), eq(assetMaps.showOnDashboard, true)));
 
   const mapsWithPlacements = await Promise.all(
     mapList.map(async (map) => {
@@ -258,7 +249,6 @@ export default async function DashboardPage({
 
       <DashboardMapPreview
         maps={mapsWithPlacements}
-        dashboardMapId={dashboardMapId}
         companyId={cid}
         canEdit={session!.user.role === 'super' || session!.user.role === 'admin'}
       />

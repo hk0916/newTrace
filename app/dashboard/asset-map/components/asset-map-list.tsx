@@ -12,6 +12,7 @@ export interface AssetMapItem {
   imagePath: string;
   imageWidth: number;
   imageHeight: number;
+  showOnDashboard: boolean;
   createdAt: string;
   gatewayCount: number;
 }
@@ -19,13 +20,12 @@ export interface AssetMapItem {
 interface AssetMapListProps {
   maps: AssetMapItem[];
   canEdit: boolean;
-  dashboardMapId?: string | null;
   onSelect: (map: AssetMapItem) => void;
   onDelete: (mapId: string) => void;
-  onSetDashboard?: (mapId: string) => void;
+  onToggleDashboard?: (mapId: string) => void;
 }
 
-export function AssetMapList({ maps, canEdit, dashboardMapId, onSelect, onDelete, onSetDashboard }: AssetMapListProps) {
+export function AssetMapList({ maps, canEdit, onSelect, onDelete, onToggleDashboard }: AssetMapListProps) {
   const t = useTranslations('assetMap');
 
   if (maps.length === 0) {
@@ -58,7 +58,7 @@ export function AssetMapList({ maps, canEdit, dashboardMapId, onSelect, onDelete
               <div className="min-w-0">
                 <h3 className="font-medium truncate flex items-center gap-1.5">
                   {map.name}
-                  {map.id === dashboardMapId && (
+                  {map.showOnDashboard && (
                     <Badge variant="outline" className="text-xs font-normal text-amber-600 border-amber-400">
                       <Star className="h-3 w-3 fill-amber-500 mr-0.5" />
                       {t('dashboard')}
@@ -72,18 +72,18 @@ export function AssetMapList({ maps, canEdit, dashboardMapId, onSelect, onDelete
                 </div>
               </div>
               <div className="flex items-center gap-1 shrink-0">
-                {canEdit && onSetDashboard && (
+                {canEdit && onToggleDashboard && (
                   <Button
-                    variant={map.id === dashboardMapId ? 'secondary' : 'outline'}
+                    variant={map.showOnDashboard ? 'secondary' : 'outline'}
                     size="sm"
-                    className={`h-8 text-xs ${map.id === dashboardMapId ? 'text-amber-600' : ''}`}
+                    className={`h-8 text-xs ${map.showOnDashboard ? 'text-amber-600' : ''}`}
                     onClick={(e) => {
                       e.stopPropagation();
-                      onSetDashboard(map.id);
+                      onToggleDashboard(map.id);
                     }}
                   >
-                    <Star className={`h-3 w-3 mr-1 ${map.id === dashboardMapId ? 'fill-amber-500' : ''}`} />
-                    {map.id === dashboardMapId ? t('hideDashboard') : t('showOnDashboard')}
+                    <Star className={`h-3 w-3 mr-1 ${map.showOnDashboard ? 'fill-amber-500' : ''}`} />
+                    {map.showOnDashboard ? t('hideDashboard') : t('showOnDashboard')}
                   </Button>
                 )}
                 {canEdit && (

@@ -49,8 +49,6 @@ function AssetMapPageContent() {
     }
   }, [session?.user?.role]);
 
-  const [dashboardMapId, setDashboardMapId] = useState<string | null>(null);
-
   const fetchMaps = useCallback(async () => {
     if (!companyId) return;
     const params = new URLSearchParams({ companyId });
@@ -59,7 +57,6 @@ function AssetMapPageContent() {
       const data = await res.json();
       const list = data?.maps ?? (Array.isArray(data) ? data : []);
       setMaps(list);
-      setDashboardMapId(data?.dashboardMapId ?? null);
     }
   }, [companyId]);
 
@@ -201,15 +198,18 @@ function AssetMapPageContent() {
         <AssetMapList
           maps={maps}
           canEdit={canEdit}
-          dashboardMapId={dashboardMapId}
           onSelect={handleSelectMap}
           onDelete={handleDeleteMap}
-          onSetDashboard={canEdit ? async (mapId) => {
+          onToggleDashboard={canEdit ? async (mapId) => {
             const res = await fetch(`/api/asset-maps/${mapId}/set-dashboard?companyId=${companyId}`, {
               method: 'POST',
             });
             if (res.ok) {
-              setDashboardMapId(mapId);
+              const data = await res.json().catch(() => null);
+              // 낙관적 업데이트: 서버 응답의 showOnDashboard 값으로 즉시 반영
+              setMaps((prev) => prev.map((m) =>
+                m.id === mapId ? { ...m, showOnDashboard: data?.showOnDashboard ?? !m.showOnDashboard } : m
+              ));
             } else {
               const data = await res.json().catch(() => null);
               alert(data?.error || t('deleteFailed'));

@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { getSession, requireAuth, resolveCompanyId, isAdminOrAbove, apiError, apiSuccess } from '@/lib/api-utils';
 import { db } from '@/lib/db';
-import { assetMaps, assetMapGateways, companies } from '@/lib/db/schema';
+import { assetMaps, assetMapGateways } from '@/lib/db/schema';
 import { eq, sql, desc } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import sharp from 'sharp';
@@ -18,12 +18,6 @@ export async function GET(req: NextRequest) {
   const companyId = resolveCompanyId(session, req);
   if (!companyId) return apiError('회사를 선택해주세요', 400);
 
-  const [companyRow] = await db
-    .select({ dashboardMapId: companies.dashboardMapId })
-    .from(companies)
-    .where(eq(companies.id, companyId))
-    .limit(1);
-
   const maps = await db
     .select({
       id: assetMaps.id,
@@ -31,6 +25,7 @@ export async function GET(req: NextRequest) {
       imagePath: assetMaps.imagePath,
       imageWidth: assetMaps.imageWidth,
       imageHeight: assetMaps.imageHeight,
+      showOnDashboard: assetMaps.showOnDashboard,
       createdAt: assetMaps.createdAt,
       gatewayCount: sql<number>`(SELECT COUNT(*) FROM asset_map_gateways WHERE map_id = ${assetMaps.id})`.as('gateway_count'),
     })
@@ -38,7 +33,7 @@ export async function GET(req: NextRequest) {
     .where(eq(assetMaps.companyId, companyId))
     .orderBy(desc(assetMaps.createdAt));
 
-  return apiSuccess({ maps, dashboardMapId: companyRow?.dashboardMapId ?? null });
+  return apiSuccess({ maps });
 }
 
 export async function POST(req: NextRequest) {
