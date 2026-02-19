@@ -204,9 +204,12 @@ async function migrateTags(pool: mysql.Pool): Promise<number> {
 }
 
 async function main(): Promise<void> {
+  // SOCKET_PATH 환경변수가 있으면 소켓 연결 (로컬 root 접속 시)
+  const socketPath = process.env.SOCKET_PATH;
   const pool = mysql.createPool({
-    host: OLD_DB_HOST,
-    port: OLD_DB_PORT,
+    ...(socketPath
+      ? { socketPath }
+      : { host: OLD_DB_HOST, port: OLD_DB_PORT }),
     user: OLD_DB_USER,
     password: OLD_DB_PASSWORD,
     database: OLD_DB_NAME,
