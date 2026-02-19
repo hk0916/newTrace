@@ -1,9 +1,11 @@
 import { NextRequest } from 'next/server';
-import { eq, and, sql, desc } from 'drizzle-orm';
+import { eq, and, sql, desc, isNull, inArray } from 'drizzle-orm';
+import { v4 as uuid } from 'uuid';
 import { db } from '@/lib/db';
 import {
   alertSettings,
   alertAcknowledgments,
+  alertHistory,
   gateways,
   gatewayStatus,
   tags,
@@ -126,6 +128,58 @@ export async function GET(req: NextRequest) {
 
   const ackSet = new Set(acknowledged.map((a) => `${a.alertType}:${a.alertKey}`));
   const filteredAlerts = alerts.filter((a) => !ackSet.has(`${a.type}:${a.key}`));
+
+  // 4. 알림 히스토리 기록
+  // 4-1. 현재 active alerts → 미존재 레코드 INSERT
+  for (const alert of alerts) {
+    const [existing] = await db
+      .select({ id: alertHistory.id })
+      .from(alertHistory)
+      .where(
+        and(
+          eq(alertHistory.companyId, companyId),
+          eq(alertHistory.alertType, alert.type),
+          eq(alertHistory.alertKey, alert.key),
+          isNull(alertHistory.resolvedAt)
+        )
+      )
+      .limit(1);
+
+    if (!existing) {
+      await db.insert(alertHistory).values({
+        id: uuid(),
+        companyId,
+        alertType: alert.type,
+        alertKey: alert.key,
+        alertName: alert.title,
+        alertMessage: alert.message,
+        triggeredAt: new Date(alert.since),
+      });
+    }
+  }
+
+  // 4-2. 해소된 알림 → resolvedAt 업데이트
+  const activeKeys = alerts.map((a) => `${a.type}:${a.key}`);
+  const openHistory = await db
+    .select({ id: alertHistory.id, alertType: alertHistory.alertType, alertKey: alertHistory.alertKey })
+    .from(alertHistory)
+    .where(
+      and(
+        eq(alertHistory.companyId, companyId),
+        isNull(alertHistory.resolvedAt)
+      )
+    );
+
+  const resolvedIds = openHistory
+    .filter((h) => !activeKeys.includes(`${h.alertType}:${h.alertKey}`))
+    .map((h) => h.id);
+
+  if (resolvedIds.length > 0) {
+    await db
+      .update(alertHistory)
+      .set({ resolvedAt: new Date() })
+      .where(inArray(alertHistory.id, resolvedIds));
+  }
 
   return apiSuccess({
     alerts: filteredAlerts,

@@ -14,7 +14,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { AlertTriangle, Save, Bell, CheckCircle } from 'lucide-react';
+import Link from 'next/link';
+import { AlertTriangle, Save, Bell, CheckCircle, History } from 'lucide-react';
 import { useCompanyId } from '../hooks/use-company-id';
 import { setCompanyIdCookie } from '@/lib/company-cookie';
 
@@ -167,11 +168,19 @@ export default function AlertsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">{t('title')}</h1>
-        <p className="text-muted-foreground mt-1">
-          {t('description')}
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">{t('title')}</h1>
+          <p className="text-muted-foreground mt-1">
+            {t('description')}
+          </p>
+        </div>
+        <Button variant="outline" size="sm" asChild>
+          <Link href="/dashboard/alerts/history">
+            <History className="h-4 w-4 mr-2" />
+            {t('history')}
+          </Link>
+        </Button>
       </div>
 
       {form.companyId && (

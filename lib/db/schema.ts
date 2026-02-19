@@ -129,7 +129,21 @@ export const usersRelations = relations(users, ({ one }) => ({
   }),
 }));
 
-// 10. 알림 확인 기록 (같은 알림은 다음 로그인까지 울리지 않음)
+// 10. 알림 히스토리 테이블 (알림 발생/해소 이력)
+export const alertHistory = pgTable('alert_history', {
+  id: varchar('id', { length: 50 }).primaryKey(),
+  companyId: varchar('company_id', { length: 50 }).notNull().references(() => companies.id),
+  alertType: varchar('alert_type', { length: 50 }).notNull(), // 'tag_stale' | 'gw_disconnected'
+  alertKey: varchar('alert_key', { length: 100 }).notNull(),  // tagMac or gwMac
+  alertName: varchar('alert_name', { length: 200 }).notNull(),
+  alertMessage: text('alert_message').notNull(),
+  triggeredAt: timestamp('triggered_at').notNull(),           // 알림 최초 발생 시각
+  resolvedAt: timestamp('resolved_at'),                       // 조건 해소 시각 (null = 진행중)
+  acknowledgedAt: timestamp('acknowledged_at'),               // 사용자 확인 시각 (null = 미확인)
+  acknowledgedBy: varchar('acknowledged_by', { length: 50 }).references(() => users.id),
+});
+
+// 11. 알림 확인 기록 (같은 알림은 다음 로그인까지 울리지 않음)
 export const alertAcknowledgments = pgTable('alert_acknowledgments', {
   id: varchar('id', { length: 50 }).primaryKey(),
   userId: varchar('user_id', { length: 50 }).notNull().references(() => users.id),
@@ -147,7 +161,19 @@ export const companiesRelations = relations(companies, ({ one, many }) => ({
   users: many(users),
   alertSettings: one(alertSettings),
   alertAcknowledgments: many(alertAcknowledgments),
+  alertHistory: many(alertHistory),
   assetMaps: many(assetMaps),
+}));
+
+export const alertHistoryRelations = relations(alertHistory, ({ one }) => ({
+  company: one(companies, {
+    fields: [alertHistory.companyId],
+    references: [companies.id],
+  }),
+  acknowledger: one(users, {
+    fields: [alertHistory.acknowledgedBy],
+    references: [users.id],
+  }),
 }));
 
 export const alertSettingsRelations = relations(alertSettings, ({ one }) => ({

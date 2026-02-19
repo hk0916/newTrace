@@ -1,8 +1,8 @@
 import { NextRequest } from 'next/server';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, isNull } from 'drizzle-orm';
 import { v4 as uuid } from 'uuid';
 import { db } from '@/lib/db';
-import { alertAcknowledgments, companies } from '@/lib/db/schema';
+import { alertAcknowledgments, alertHistory, companies } from '@/lib/db/schema';
 import {
   getSession,
   requireAuth,
@@ -90,6 +90,27 @@ export async function POST(req: NextRequest) {
       alertKey: k.key,
       sessionIat,
     });
+
+    // alertHistory에서 미해소 레코드에 acknowledgedAt 업데이트
+    const [openHistory] = await db
+      .select({ id: alertHistory.id })
+      .from(alertHistory)
+      .where(
+        and(
+          eq(alertHistory.companyId, companyId),
+          eq(alertHistory.alertType, k.type),
+          eq(alertHistory.alertKey, k.key),
+          isNull(alertHistory.resolvedAt)
+        )
+      )
+      .limit(1);
+
+    if (openHistory) {
+      await db
+        .update(alertHistory)
+        .set({ acknowledgedAt: new Date(), acknowledgedBy: session!.user.id })
+        .where(eq(alertHistory.id, openHistory.id));
+    }
   }
 
   return apiSuccess({ acknowledged: body.keys!.length });
