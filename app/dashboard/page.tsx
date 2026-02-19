@@ -135,6 +135,7 @@ export default async function DashboardPage({
       isConnected: gatewayStatus.isConnected,
       fwVersion: gatewayStatus.fwVersion,
       lastConnectedAt: gatewayStatus.lastConnectedAt,
+      tagCount: sql<number>`(SELECT COUNT(*) FROM tags WHERE assigned_gw_mac = ${gateways.gwMac} AND is_active = true)`,
     })
     .from(gateways)
     .leftJoin(gatewayStatus, eq(gateways.gwMac, gatewayStatus.gwMac))
