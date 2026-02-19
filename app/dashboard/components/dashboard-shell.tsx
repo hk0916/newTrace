@@ -39,7 +39,7 @@ export function DashboardShell({ user, companyId, children }: DashboardShellProp
   const effectiveCompanyId = companyId ?? user.companyId;
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex h-screen overflow-hidden">
       {/* Sidebar */}
       <aside className="hidden w-64 border-r bg-muted/30 md:block">
         <div className="flex h-full flex-col">
