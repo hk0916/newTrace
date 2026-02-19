@@ -23,8 +23,8 @@ const clientMacMap = new Map<WebSocket, string>();
 // Heartbeat: pong 응답 여부 추적
 const aliveMap = new WeakMap<WebSocket, boolean>();
 
-// 명령 HTTP API 시작
-startCommandApi();
+// 명령 HTTP API 시작 (종료 시 닫기 위해 참조 보관)
+const cmdServer = startCommandApi();
 
 const REGISTRATION_TIMEOUT_MS = 30_000; // 30초 내 0x08 미수신 시 연결 종료
 const HEARTBEAT_INTERVAL_MS   = 30_000; // 30초마다 ping 전송
@@ -126,13 +126,33 @@ setInterval(() => {
   }
 }, HEARTBEAT_INTERVAL_MS);
 
-// 종료 처리
-process.on('SIGINT', () => {
+// 종료 처리 (한 번만 실행, 타임아웃 후 강제 종료)
+let shuttingDown = false;
+function gracefulShutdown() {
+  if (shuttingDown) return;
+  shuttingDown = true;
   console.log('\n[WS Server] 종료 중...');
+
+  const forceExit = () => {
+    console.log('[WS Server] 타임아웃 - 강제 종료');
+    process.exit(1);
+  };
+  const timeout = setTimeout(forceExit, 5000);
+
+  // 모든 WebSocket 연결 즉시 종료 (wss.close 대기 시간 단축)
+  for (const client of wss.clients) {
+    client.terminate();
+  }
+
   wss.close(() => {
-    httpServer.close(() => {
-      console.log('[WS Server] 종료 완료');
-      process.exit(0);
+    cmdServer.close(() => {
+      httpServer.close(() => {
+        clearTimeout(timeout);
+        console.log('[WS Server] 종료 완료');
+        process.exit(0);
+      });
     });
   });
-});
+}
+process.on('SIGINT', gracefulShutdown);
+process.on('SIGTERM', gracefulShutdown);
