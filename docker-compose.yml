@@ -31,6 +31,8 @@ services:
       AUTH_TRUST_HOST: "true"
       WS_CMD_URL: http://wsserver:8081
       WS_CMD_SECRET: ${WS_CMD_SECRET:-tracetag-cmd-secret}
+    volumes:
+      - ./data/uploads:/app/public/uploads
     depends_on:
       postgres:
         condition: service_healthy
