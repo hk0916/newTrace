@@ -44,8 +44,8 @@ export function parseGwInfo(buf: Buffer): GwInfoPayload {
   const riOffset = wsUrlOffset + 1 + wsUrlLen;
   const reportInterval = buf.readUInt32LE(riOffset);
 
-  // RSSI Filter (1 byte, unsigned absolute value: 70 → -70 dBm)
-  const rssiFilter = -buf.readUInt8(riOffset + 4);
+  // RSSI Filter (1 byte, signed int8: -99 = 0x9D)
+  const rssiFilter = buf.readInt8(riOffset + 4);
 
   return { gwMac, hwVersion, fwVersion, otaServerUrl, wsServerUrl, reportInterval, rssiFilter };
 }
