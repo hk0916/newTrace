@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TraceTag API Docs</title>
+  <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; }
+
+    /* 상단 헤더 */
+    #header {
+      background: #1a1a2e;
+      color: #fff;
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    #header h1 { font-size: 18px; font-weight: 600; letter-spacing: 0.5px; }
+    #header span { font-size: 12px; color: #aaa; }
+
+    /* 서버 선택 */
+    #server-bar {
+      background: #16213e;
+      padding: 10px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid #0f3460;
+    }
+    #server-bar label { color: #ccc; font-size: 13px; white-space: nowrap; }
+    #server-select {
+      background: #0f3460;
+      color: #fff;
+      border: 1px solid #4a4a8a;
+      border-radius: 6px;
+      padding: 5px 10px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    #server-select:focus { outline: none; border-color: #7a7aff; }
+
+    /* 메인 컨텐츠 */
+    #swagger-ui { max-width: 1200px; margin: 0 auto; }
+
+    /* Swagger UI 커스텀 스타일 */
+    .swagger-ui .topbar { display: none !important; }
+    .swagger-ui .info { margin: 20px 0; }
+    .swagger-ui .info .title { font-size: 26px; }
+    .swagger-ui .scheme-container { background: #fafafa; padding: 12px; border-radius: 8px; margin: 12px 0; }
+    .swagger-ui .opblock-tag { font-size: 16px; }
+    .swagger-ui .btn.authorize { background: #1a1a2e; border-color: #1a1a2e; }
+    .swagger-ui .btn.authorize svg { fill: #fff; }
+  </style>
+</head>
+<body>
+
+<div id="header">
+  <h1>📡 TraceTag Platform API</h1>
+  <span>BLE Asset Tracking · OpenAPI 3.0</span>
+</div>
+
+<div id="server-bar">
+  <label for="server-select">서버 선택:</label>
+  <select id="server-select">
+    <option value="http://localhost:3000/api">🖥️ 로컬 개발 (localhost:3000)</option>
+    <option value="https://tracetaghub.io/api">🌐 운영 서버 (tracetaghub.io)</option>
+    <option value="http://211.38.153.203:3000/api">🔧 운영 서버 IP 직접 접근</option>
+  </select>
+</div>
+
+<div id="swagger-ui"></div>
+
+<script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+<script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-standalone-preset.js"></script>
+<script src="https://unpkg.com/js-yaml@4/dist/js-yaml.min.js"></script>
+<script>
+
+// openapi.yaml 을 fetch해서 로드
+async function loadSpec() {
+  // 로컬 파일로 열었을 때와 HTTP 서버로 서빙될 때 모두 지원
+  let specUrl = './openapi.yaml';
+
+  // 현재 선택된 서버
+  const serverSelect = document.getElementById('server-select');
+
+  function getSelectedServer() {
+    return serverSelect.value;
+  }
+
+  try {
+    const res = await fetch(specUrl);
+    const yamlText = await res.text();
+    const spec = jsyaml.load(yamlText);
+
+    // 선택된 서버를 spec에 반영
+    function buildSpec() {
+      const selectedServer = getSelectedServer();
+      return {
+        ...spec,
+        servers: [
+          { url: selectedServer, description: '현재 선택된 서버' },
+          ...spec.servers.filter(s => s.url !== selectedServer)
+        ]
+      };
+    }
+
+    let ui;
+
+    function initUI() {
+      if (ui) ui = null;
+      const currentSpec = buildSpec();
+
+      ui = SwaggerUIBundle({
+        spec: currentSpec,
+        dom_id: '#swagger-ui',
+        presets: [
+          SwaggerUIBundle.presets.apis,
+          SwaggerUIStandalonePreset
+        ],
+        layout: 'StandaloneLayout',
+        deepLinking: true,
+        displayRequestDuration: true,
+        filter: true,
+        tryItOutEnabled: true,
+        supportedSubmitMethods: ['get', 'post', 'put', 'delete', 'patch'],
+        withCredentials: true,  // 쿠키 인증 (세션 포함)
+        requestInterceptor: (req) => {
+          // 선택된 서버 URL로 요청 경로 조정
+          return req;
+        },
+      });
+    }
+
+    initUI();
+
+    // 서버 변경 시 재초기화
+    serverSelect.addEventListener('change', () => {
+      document.getElementById('swagger-ui').innerHTML = '';
+      initUI();
+    });
+
+  } catch (err) {
+    // fetch 실패 시 (file:// 프로토콜) — YAML을 인라인으로 embed
+    console.warn('fetch 실패, 인라인 spec 사용:', err);
+    loadInlineSpec();
+  }
+}
+
+// file:// 프로토콜에서 fetch가 불가할 때 인라인 YAML 로드
+function loadInlineSpec() {
+  const specText = document.getElementById('inline-spec').textContent;
+  const spec = jsyaml.load(specText);
+
+  SwaggerUIBundle({
+    spec,
+    dom_id: '#swagger-ui',
+    presets: [
+      SwaggerUIBundle.presets.apis,
+      SwaggerUIStandalonePreset
+    ],
+    layout: 'StandaloneLayout',
+    deepLinking: true,
+    displayRequestDuration: true,
+    filter: true,
+    tryItOutEnabled: true,
+    withCredentials: true,
+  });
+}
+
+loadSpec();
+</script>
+
+<!-- file:// 프로토콜 fallback용 인라인 spec (최소 버전) -->
+<script type="text/plain" id="inline-spec">
+openapi: 3.0.3
+info:
+  title: TraceTag Platform API
+  version: 1.0.0
+  description: |
+    BLE 자산 추적 플랫폼 REST API.
+    전체 spec은 openapi.yaml 파일을 참조하세요.
+    HTTP 서버를 통해 index.html을 서빙하면 전체 spec이 자동으로 로드됩니다.
+
+    **로컬에서 전체 spec 보기:**
+    ```
+    npx serve swagger/
+    ```
+    또는
+    ```
+    cd swagger && python3 -m http.server 8888
+    ```
+servers:
+  - url: http://localhost:3000/api
+    description: 로컬 개발 서버
+paths:
+  /gateways:
+    get:
+      tags: [Gateways]
+      summary: 게이트웨이 목록 조회
+      responses:
+        '200':
+          description: OK
+  /tags:
+    get:
+      tags: [Tags]
+      summary: 태그 목록 조회
+      responses:
+        '200':
+          description: OK
+</script>
+
+</body>
+</html>
