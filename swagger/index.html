@@ -33,6 +33,7 @@
       align-items: center;
       gap: 12px;
       border-bottom: 1px solid #0f3460;
+      flex-wrap: wrap;
     }
     #server-bar label { color: #ccc; font-size: 13px; white-space: nowrap; }
     #server-select {
@@ -45,6 +46,21 @@
       cursor: pointer;
     }
     #server-select:focus { outline: none; border-color: #7a7aff; }
+
+    /* 운영 서버 경고 배너 */
+    #prod-warning {
+      display: none;
+      background: #7c2d12;
+      color: #fef3c7;
+      border: 1px solid #dc2626;
+      border-radius: 6px;
+      padding: 6px 14px;
+      font-size: 12px;
+      font-weight: 500;
+      align-items: center;
+      gap: 6px;
+    }
+    #prod-warning.show { display: flex; }
 
     /* 메인 컨텐츠 */
     #swagger-ui { max-width: 1200px; margin: 0 auto; }
@@ -73,6 +89,9 @@
     <option value="https://tracetaghub.io/api">🌐 운영 서버 (tracetaghub.io)</option>
     <option value="http://211.38.153.203:3000/api">🔧 운영 서버 IP 직접 접근</option>
   </select>
+  <div id="prod-warning">
+    ⚠️ 운영 서버 — 조회(GET)만 허용됩니다. 데이터 변경 요청은 비활성화됩니다.
+  </div>
 </div>
 
 <div id="swagger-ui"></div>
@@ -89,9 +108,28 @@ async function loadSpec() {
 
   // 현재 선택된 서버
   const serverSelect = document.getElementById('server-select');
+  const prodWarning = document.getElementById('prod-warning');
+
+  // 운영 서버 URL 목록 (GET만 허용)
+  const PROD_SERVERS = [
+    'https://tracetaghub.io/api',
+    'http://211.38.153.203:3000/api',
+  ];
 
   function getSelectedServer() {
     return serverSelect.value;
+  }
+
+  function isProdServer() {
+    return PROD_SERVERS.includes(getSelectedServer());
+  }
+
+  function updateProdWarning() {
+    if (isProdServer()) {
+      prodWarning.classList.add('show');
+    } else {
+      prodWarning.classList.remove('show');
+    }
   }
 
   try {
@@ -116,6 +154,9 @@ async function loadSpec() {
     function initUI() {
       if (ui) ui = null;
       const currentSpec = buildSpec();
+      const prod = isProdServer();
+
+      updateProdWarning();
 
       ui = SwaggerUIBundle({
         spec: currentSpec,
@@ -129,10 +170,10 @@ async function loadSpec() {
         displayRequestDuration: true,
         filter: true,
         tryItOutEnabled: true,
-        supportedSubmitMethods: ['get', 'post', 'put', 'delete', 'patch'],
+        // 운영 서버는 GET 조회만 허용
+        supportedSubmitMethods: prod ? ['get'] : ['get', 'post', 'put', 'delete', 'patch'],
         withCredentials: true,  // 쿠키 인증 (세션 포함)
         requestInterceptor: (req) => {
-          // 선택된 서버 URL로 요청 경로 조정
           return req;
         },
       });
