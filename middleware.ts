@@ -23,7 +23,7 @@ export default auth((req) => {
 
   // 대시보드: non-super 사용자가 companyId 없으면 로그인으로 (세션 무효)
   if (pathname.startsWith('/dashboard')) {
-    const user = req.auth?.user as { role?: string; companyId?: string } | undefined;
+    const user = req.auth?.user as { role?: string; companyId?: string; mustChangePassword?: boolean } | undefined;
     const isSuper = user?.role === 'super';
 
     if (!isSuper) {
@@ -31,6 +31,11 @@ export default auth((req) => {
       if (!companyId || companyId === 'super') {
         return requireLogin(req);
       }
+    }
+
+    // 임시 비밀번호 사용 중이면 비밀번호 변경 페이지로 강제 이동
+    if (user?.mustChangePassword && pathname !== '/dashboard/change-password') {
+      return NextResponse.redirect(new URL('/dashboard/change-password', req.url));
     }
   }
 

@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -13,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Settings, Clock, Save } from 'lucide-react';
+import { Settings, Clock, Save, KeyRound, CheckCircle2 } from 'lucide-react';
 import { useCompanyId } from '../hooks/use-company-id';
 import { setCompanyIdCookie } from '@/lib/company-cookie';
 import { formatDateTime } from '@/lib/utils';
@@ -53,6 +54,12 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(false);
   const [previewNow, setPreviewNow] = useState(new Date().toISOString());
 
+  // 비밀번호 변경 상태
+  const [pwForm, setPwForm] = useState({ current: '', next: '', confirm: '' });
+  const [pwError, setPwError] = useState('');
+  const [pwSuccess, setPwSuccess] = useState(false);
+  const [pwLoading, setPwLoading] = useState(false);
+
   useEffect(() => {
     async function fetchCompanies() {
       const res = await fetch('/api/companies');
@@ -83,6 +90,34 @@ export default function SettingsPage() {
     const id = setInterval(() => setPreviewNow(new Date().toISOString()), 1000);
     return () => clearInterval(id);
   }, []);
+
+  async function handlePasswordChange(e: React.FormEvent) {
+    e.preventDefault();
+    setPwError('');
+    if (pwForm.next !== pwForm.confirm) {
+      setPwError('새 비밀번호가 일치하지 않습니다.');
+      return;
+    }
+    if (pwForm.next.length < 6) {
+      setPwError('새 비밀번호는 6자 이상이어야 합니다.');
+      return;
+    }
+    setPwLoading(true);
+    const res = await fetch('/api/user/password', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ currentPassword: pwForm.current, newPassword: pwForm.next }),
+    });
+    setPwLoading(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      setPwError(data?.error || '비밀번호 변경에 실패했습니다.');
+      return;
+    }
+    setPwSuccess(true);
+    setPwForm({ current: '', next: '', confirm: '' });
+    setTimeout(() => setPwSuccess(false), 4000);
+  }
 
   async function handleSave() {
     if (!companyId) return;
@@ -176,6 +211,68 @@ export default function SettingsPage() {
             <Save className="h-4 w-4 mr-2" />
             {saved ? tCommon('saved') : tCommon('save')}
           </Button>
+        </CardContent>
+      </Card>
+
+      {/* 비밀번호 변경 카드 */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <KeyRound className="h-5 w-5" />
+            비밀번호 변경
+          </CardTitle>
+          <CardDescription>현재 비밀번호를 확인한 후 새 비밀번호로 변경합니다.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handlePasswordChange} className="space-y-4 max-w-sm">
+            <div className="space-y-2">
+              <Label htmlFor="pw-current">현재 비밀번호</Label>
+              <Input
+                id="pw-current"
+                type="password"
+                value={pwForm.current}
+                onChange={(e) => setPwForm((f) => ({ ...f, current: e.target.value }))}
+                placeholder="현재 비밀번호"
+                required
+                autoComplete="current-password"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="pw-new">새 비밀번호</Label>
+              <Input
+                id="pw-new"
+                type="password"
+                value={pwForm.next}
+                onChange={(e) => setPwForm((f) => ({ ...f, next: e.target.value }))}
+                placeholder="6자 이상"
+                required
+                autoComplete="new-password"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="pw-confirm">새 비밀번호 확인</Label>
+              <Input
+                id="pw-confirm"
+                type="password"
+                value={pwForm.confirm}
+                onChange={(e) => setPwForm((f) => ({ ...f, confirm: e.target.value }))}
+                placeholder="새 비밀번호 재입력"
+                required
+                autoComplete="new-password"
+              />
+            </div>
+            {pwError && <p className="text-sm text-destructive">{pwError}</p>}
+            {pwSuccess && (
+              <p className="text-sm text-green-600 flex items-center gap-1">
+                <CheckCircle2 className="h-4 w-4" />
+                비밀번호가 변경되었습니다.
+              </p>
+            )}
+            <Button type="submit" disabled={pwLoading}>
+              <KeyRound className="h-4 w-4 mr-2" />
+              {pwLoading ? '변경 중...' : '비밀번호 변경'}
+            </Button>
+          </form>
         </CardContent>
       </Card>
     </div>

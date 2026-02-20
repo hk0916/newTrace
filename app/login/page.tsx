@@ -13,6 +13,7 @@ export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
+  const passwordChanged = searchParams.get('changed') === '1';
   const t = useTranslations('auth');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -54,6 +55,11 @@ export default function LoginPage() {
           <CardDescription>{t('platformDescription')}</CardDescription>
         </CardHeader>
         <CardContent>
+          {passwordChanged && (
+            <div className="mb-4 rounded-md bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700">
+              비밀번호가 변경되었습니다. 새 비밀번호로 로그인해주세요.
+            </div>
+          )}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">{t('email')}</Label>

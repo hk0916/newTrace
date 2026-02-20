@@ -6,6 +6,7 @@ declare module 'next-auth' {
     companyId?: string | null;
     role: string;
     locale?: string;
+    mustChangePassword?: boolean;
   }
   interface Session {
     user: {
@@ -15,6 +16,7 @@ declare module 'next-auth' {
       companyId?: string | null;
       role: string;
       locale: string;
+      mustChangePassword?: boolean;
     };
     sessionIat?: number; // JWT iat (로그인 시점) - 알림 확인 시 세션 구분용
   }
@@ -27,5 +29,6 @@ declare module 'next-auth/jwt' {
     role: string;
     locale: string;
     iat?: number;
+    mustChangePassword?: boolean;
   }
 }
