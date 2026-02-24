@@ -1,6 +1,5 @@
-import { eq, and, sql, lt } from 'drizzle-orm';
-import { db } from '@/lib/db';
-import { gateways, gatewayStatus, tags, tagSensingData } from '@/lib/db/schema';
+import { eq, sql } from 'drizzle-orm';
+import { db, getCompanyTables } from '@/lib/db';
 import { getSession, requireAuth, getCompanyScope, apiError, apiSuccess } from '@/lib/api-utils';
 
 export async function GET() {
@@ -11,29 +10,28 @@ export async function GET() {
   const companyId = getCompanyScope(session);
   if (!companyId) return apiError('회사 정보가 없습니다', 400);
 
+  const { gateways, gatewayStatus, tags, tagSensingData } = getCompanyTables(companyId);
+
   const [gwStats] = await db
     .select({
       total: sql<number>`count(*)`,
       active: sql<number>`count(*) filter (where ${gateways.isActive} = true)`,
     })
-    .from(gateways)
-    .where(eq(gateways.companyId, companyId));
+    .from(gateways);
 
   const [connectedStats] = await db
     .select({
       connected: sql<number>`count(*) filter (where ${gatewayStatus.isConnected} = true)`,
     })
     .from(gatewayStatus)
-    .innerJoin(gateways, eq(gatewayStatus.gwMac, gateways.gwMac))
-    .where(eq(gateways.companyId, companyId));
+    .innerJoin(gateways, eq(gatewayStatus.gwMac, gateways.gwMac));
 
   const [tagStats] = await db
     .select({
       total: sql<number>`count(*)`,
       active: sql<number>`count(*) filter (where ${tags.isActive} = true)`,
     })
-    .from(tags)
-    .where(eq(tags.companyId, companyId));
+    .from(tags);
 
   const [alertStats] = await db
     .select({
@@ -41,12 +39,7 @@ export async function GET() {
     })
     .from(tagSensingData)
     .innerJoin(tags, eq(tagSensingData.tagMac, tags.tagMac))
-    .where(
-      and(
-        eq(tags.companyId, companyId),
-        sql`${tagSensingData.receivedTime} > now() - interval '1 hour'`
-      )
-    );
+    .where(sql`${tagSensingData.receivedTime} > now() - interval '1 hour'`);
 
   return apiSuccess({
     gateways: {

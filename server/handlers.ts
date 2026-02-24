@@ -1,8 +1,10 @@
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { v4 as uuid } from 'uuid';
 import type WebSocket from 'ws';
 import { db } from '../lib/db';
-import { companies, gatewayStatus, gateways, tags, tagSensingData } from '../lib/db/schema';
+import { companies } from '../lib/db/schema-public';
+import { getCompanyTables } from '../lib/db/schema-company';
+import { createCompanySchemaInDb } from '../lib/db/company-schema-manager';
 import {
   parseHeader,
   parseGwInfo,
@@ -14,6 +16,39 @@ import type { ClientInfo } from './types';
 
 // 연결된 게이트웨이 추적 (MAC → WebSocket)
 export const connectedGateways = new Map<string, WebSocket>();
+
+// GW MAC → companyId 캐시 (매 패킷마다 DB 조회 방지)
+const gwCompanyCache = new Map<string, string>();
+
+/**
+ * GW MAC으로 소속 companyId 조회 (캐시 우선)
+ * 미등록 GW면 'unregistered' 반환
+ */
+async function resolveGwCompany(gwMac: string): Promise<string> {
+  if (gwCompanyCache.has(gwMac)) {
+    return gwCompanyCache.get(gwMac)!;
+  }
+
+  // 모든 tenant 스키마에서 해당 GW MAC 검색
+  const schemas = await db.execute<{ schema_name: string }>(sql`
+    SELECT schema_name FROM information_schema.schemata
+    WHERE schema_name LIKE 'tenant_%'
+  `);
+
+  for (const row of schemas) {
+    const companyId = row.schema_name.replace('tenant_', '');
+    const { gateways } = getCompanyTables(companyId);
+    const [found] = await db.select({ gwMac: gateways.gwMac }).from(gateways)
+      .where(eq(gateways.gwMac, gwMac)).limit(1);
+    if (found) {
+      gwCompanyCache.set(gwMac, companyId);
+      return companyId;
+    }
+  }
+
+  gwCompanyCache.set(gwMac, 'unregistered');
+  return 'unregistered';
+}
 
 /**
  * 수신 메시지 처리 메인 핸들러
@@ -58,7 +93,6 @@ export async function handleMessage(
         }
         break;
 
-      // 명령 ACK (게이트웨이가 명령 수신 후 응답)
       case 0x01:
       case 0x02:
       case 0x04:
@@ -66,7 +100,7 @@ export async function handleMessage(
       case 0x06:
       case 0x07: {
         const name = cmdNames[header.dataType] || `0x${header.dataType.toString(16)}`;
-        const status = data.length > 4 ? data[4] : -1; // 보통 0x00=성공
+        const status = data.length > 4 ? data[4] : -1;
         console.log(`[WS] 명령 ACK: ${name} (status=${status}) from ${clientInfo.ip}:${clientInfo.port}`);
         break;
       }
@@ -81,7 +115,9 @@ export async function handleMessage(
 
 /**
  * 0x08 - 게이트웨이 정보 처리
- * 게이트웨이 상태 DB에 upsert하고 연결 추적에 등록
+ * 1) GW MAC으로 소속 company 확인
+ * 2) 미등록이면 unregistered 스키마에 자동 등록
+ * 3) 해당 company 스키마의 gateway_status upsert
  */
 async function handleGwInfo(
   ws: WebSocket,
@@ -92,39 +128,41 @@ async function handleGwInfo(
   console.log(`[WS] 게이트웨이 연결: ${gwInfo.gwMac} (${clientInfo.ip}:${clientInfo.port})`);
   console.log(`     HW: ${gwInfo.hwVersion}, FW: ${gwInfo.fwVersion}, Interval: ${gwInfo.reportInterval}s`);
 
-  // 연결 추적 등록 (기존 연결이 있으면 종료 → 1 Gw = 1 Connection)
+  // 연결 추적 (1 GW = 1 Connection)
   const existingWs = connectedGateways.get(gwInfo.gwMac);
   if (existingWs && existingWs !== ws) {
     existingWs.close();
   }
   connectedGateways.set(gwInfo.gwMac, ws);
 
-  // gateway_status는 gateways FK 필요 → 미등록 게이트웨이면 gateways에 먼저 등록 (미등록 회사로만)
-  const UNREGISTERED_COMPANY_ID = 'unregistered';
-  await db.insert(companies).values({
-    id: UNREGISTERED_COMPANY_ID,
-    name: '미등록 (최초 연결)',
-  }).onConflictDoNothing();
+  // 소속 company 찾기
+  const UNREGISTERED = 'unregistered';
+  let companyId = await resolveGwCompany(gwInfo.gwMac);
 
-  const [existing] = await db
-    .select()
-    .from(gateways)
-    .where(eq(gateways.gwMac, gwInfo.gwMac))
-    .limit(1);
+  // 미등록 게이트웨이: unregistered 스키마에 자동 등록
+  if (companyId === UNREGISTERED) {
+    // unregistered 회사 public 레코드 보장
+    await db.insert(companies).values({
+      id: UNREGISTERED,
+      name: '미등록 (최초 연결)',
+    }).onConflictDoNothing();
 
-  if (!existing) {
-    await db
-      .insert(gateways)
-      .values({
-        gwMac: gwInfo.gwMac,
-        gwName: `게이트웨이 ${gwInfo.gwMac}`,
-        companyId: UNREGISTERED_COMPANY_ID,
-      })
-      .onConflictDoNothing();
+    // unregistered tenant 스키마 생성 (없으면)
+    await createCompanySchemaInDb(UNREGISTERED);
+
+    const { gateways } = getCompanyTables(UNREGISTERED);
+    await db.insert(gateways).values({
+      gwMac: gwInfo.gwMac,
+      gwName: `게이트웨이 ${gwInfo.gwMac}`,
+    }).onConflictDoNothing();
+
+    companyId = UNREGISTERED;
+    gwCompanyCache.set(gwInfo.gwMac, UNREGISTERED);
     console.log(`[WS] 신규 게이트웨이 자동 등록 (미등록): ${gwInfo.gwMac}`);
   }
 
-  // DB upsert (gateway_status 테이블)
+  // 해당 company 스키마의 gateway_status upsert
+  const { gatewayStatus } = getCompanyTables(companyId);
   await db
     .insert(gatewayStatus)
     .values({
@@ -158,30 +196,29 @@ async function handleGwInfo(
       },
     });
 
-  // 응답 전송
   ws.send(buildGwInfoResponse());
 }
 
 /**
  * 0x0A - 태그 센싱 데이터 처리
- * 등록된 태그인지 확인 후 센싱 데이터 저장
+ * GW의 company 스키마에서 태그 확인 후 센싱 데이터 저장
  */
 async function handleTagData(data: Buffer, clientInfo: ClientInfo): Promise<void> {
   const tagData = parseTagData(data);
 
-  // 등록된 태그인지 확인
+  const companyId = await resolveGwCompany(tagData.gwMac);
+  if (companyId === 'unregistered') return; // 미등록 GW 태그는 저장하지 않음
+
+  const { tags, tagSensingData } = getCompanyTables(companyId);
+
   const [tag] = await db
     .select()
     .from(tags)
     .where(eq(tags.tagMac, tagData.tagMac))
     .limit(1);
 
-  if (!tag) {
-    // 미등록 태그는 로그만 남기고 스킵
-    return;
-  }
+  if (!tag) return; // 미등록 태그는 스킵
 
-  // 센싱 데이터 저장
   await db.insert(tagSensingData).values({
     id: uuid(),
     tagMac: tagData.tagMac,
@@ -193,7 +230,6 @@ async function handleTagData(data: Buffer, clientInfo: ClientInfo): Promise<void
     rawData: tagData.rawAdvData,
   });
 
-  // assignedGwMac 자동 갱신: 마지막으로 이 태그를 감지한 게이트웨이로 업데이트
   if (tag.assignedGwMac !== tagData.gwMac) {
     await db
       .update(tags)
@@ -209,22 +245,23 @@ async function handleTagData(data: Buffer, clientInfo: ClientInfo): Promise<void
 
 /**
  * 게이트웨이 연결 해제 처리
- * @param gwMac - 게이트웨이 MAC
- * @param closedWs - 종료된 WebSocket (같은 MAC으로 교체된 연결이면 삭제 스킵)
  */
 export async function handleDisconnect(gwMac: string, closedWs?: WebSocket): Promise<void> {
   const currentWs = connectedGateways.get(gwMac);
   if (closedWs && currentWs !== closedWs) {
-    return; // 이미 새 연결로 교체됨
+    return;
   }
   connectedGateways.delete(gwMac);
 
   try {
-    await db
-      .update(gatewayStatus)
-      .set({ isConnected: false, lastUpdatedAt: new Date() })
-      .where(eq(gatewayStatus.gwMac, gwMac));
-
+    const companyId = gwCompanyCache.get(gwMac);
+    if (companyId) {
+      const { gatewayStatus } = getCompanyTables(companyId);
+      await db
+        .update(gatewayStatus)
+        .set({ isConnected: false, lastUpdatedAt: new Date() })
+        .where(eq(gatewayStatus.gwMac, gwMac));
+    }
     console.log(`[WS] 게이트웨이 연결 해제: ${gwMac}`);
   } catch (error) {
     console.error(`[WS] 연결 해제 DB 업데이트 실패: ${gwMac}`, error);

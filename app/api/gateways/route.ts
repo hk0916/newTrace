@@ -1,7 +1,6 @@
 import { NextRequest } from 'next/server';
 import { eq, sql } from 'drizzle-orm';
-import { db } from '@/lib/db';
-import { gateways, gatewayStatus } from '@/lib/db/schema';
+import { db, getCompanyTables } from '@/lib/db';
 import { createGatewaySchema } from '@/lib/validators/gateway';
 import {
   getSession,
@@ -22,6 +21,9 @@ export async function GET(req: NextRequest) {
   const companyId = resolveCompanyId(session, req);
   if (!companyId) return apiError('회사 정보가 없습니다', 400);
 
+  const { gateways, gatewayStatus } = getCompanyTables(companyId);
+  const schemaName = `tenant_${companyId}`;
+
   const search = req.nextUrl.searchParams.get('search')?.toLowerCase().trim() || '';
   const sortOrder = req.nextUrl.searchParams.get('order') === 'asc' ? 'asc' : 'desc';
 
@@ -29,7 +31,6 @@ export async function GET(req: NextRequest) {
     .select({
       gwMac: gateways.gwMac,
       gwName: gateways.gwName,
-      companyId: gateways.companyId,
       location: gateways.location,
       description: gateways.description,
       isActive: gateways.isActive,
@@ -44,11 +45,10 @@ export async function GET(req: NextRequest) {
       otaServerUrl: gatewayStatus.otaServerUrl,
       wsServerUrl: gatewayStatus.wsServerUrl,
       lastConnectedAt: gatewayStatus.lastConnectedAt,
-      tagCount: sql<number>`(SELECT COUNT(*) FROM tags WHERE assigned_gw_mac = ${gateways.gwMac} AND is_active = true)`.as('tag_count'),
+      tagCount: sql<number>`(SELECT COUNT(*) FROM "${sql.raw(schemaName)}"."tags" WHERE assigned_gw_mac = ${gateways.gwMac} AND is_active = true)`.as('tag_count'),
     })
     .from(gateways)
-    .leftJoin(gatewayStatus, eq(gateways.gwMac, gatewayStatus.gwMac))
-    .where(eq(gateways.companyId, companyId));
+    .leftJoin(gatewayStatus, eq(gateways.gwMac, gatewayStatus.gwMac));
 
   if (search) {
     const s = search.replace(/[:\-]/g, '').toLowerCase();
@@ -89,12 +89,14 @@ export async function POST(req: NextRequest) {
     return apiError('다른 회사의 게이트웨이를 등록할 수 없습니다', 403);
   }
 
+  const { gateways } = getCompanyTables(companyId);
+
   const existing = await db.select().from(gateways).where(eq(gateways.gwMac, gwMac)).limit(1);
   if (existing.length > 0) {
     return apiError('이미 등록된 MAC 주소입니다', 409);
   }
 
-  const newGateway = { gwMac, gwName, companyId, location, description };
+  const newGateway = { gwMac, gwName, location, description };
   await db.insert(gateways).values(newGateway);
   return apiSuccess(newGateway, 201);
 }

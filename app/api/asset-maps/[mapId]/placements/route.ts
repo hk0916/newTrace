@@ -1,8 +1,7 @@
 import { NextRequest } from 'next/server';
 import { getSession, requireAuth, resolveCompanyId, isAdminOrAbove, apiError, apiSuccess } from '@/lib/api-utils';
-import { db } from '@/lib/db';
-import { assetMaps, assetMapGateways } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { db, getCompanyTables } from '@/lib/db';
+import { eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { saveMapPlacementsSchema } from '@/lib/validators/asset-map';
 
@@ -19,12 +18,13 @@ export async function PUT(
   if (!companyId) return apiError('회사를 선택해주세요', 400);
 
   const { mapId } = await params;
+  const { assetMaps, assetMapGateways } = getCompanyTables(companyId);
 
   // Verify map belongs to company
   const [map] = await db
     .select()
     .from(assetMaps)
-    .where(and(eq(assetMaps.id, mapId), eq(assetMaps.companyId, companyId)))
+    .where(eq(assetMaps.id, mapId))
     .limit(1);
 
   if (!map) return apiError('맵을 찾을 수 없습니다', 404);

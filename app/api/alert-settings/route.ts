@@ -1,7 +1,6 @@
 import { NextRequest } from 'next/server';
 import { eq } from 'drizzle-orm';
-import { db } from '@/lib/db';
-import { alertSettings, companies } from '@/lib/db/schema';
+import { db, companies, getCompanyTables } from '@/lib/db';
 import { alertSettingsSchema } from '@/lib/validators/alert-settings';
 import {
   getSession,
@@ -22,10 +21,12 @@ export async function GET(req: NextRequest) {
   const companyId = resolveCompanyId(session, req);
   if (!companyId) return apiError('회사 정보가 없습니다', 400);
 
+  const { alertSettings } = getCompanyTables(companyId);
+
   const [settings] = await db
     .select()
     .from(alertSettings)
-    .where(eq(alertSettings.companyId, companyId))
+    .where(eq(alertSettings.id, 'default'))
     .limit(1);
 
   if (!settings) {
@@ -75,8 +76,10 @@ export async function PUT(req: NextRequest) {
 
   if (!company) return apiError('회사를 찾을 수 없습니다', 404);
 
+  const { alertSettings } = getCompanyTables(companyId);
+
   const values = {
-    companyId,
+    id: 'default' as const,
     lowVoltageThreshold: data.lowVoltageThreshold.toString(),
     highTempThreshold: data.highTempThreshold.toString(),
     lowTempThreshold: data.lowTempThreshold.toString(),
@@ -93,7 +96,7 @@ export async function PUT(req: NextRequest) {
     .insert(alertSettings)
     .values(values)
     .onConflictDoUpdate({
-      target: alertSettings.companyId,
+      target: alertSettings.id,
       set: {
         lowVoltageThreshold: values.lowVoltageThreshold,
         highTempThreshold: values.highTempThreshold,

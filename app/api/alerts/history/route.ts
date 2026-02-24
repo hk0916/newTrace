@@ -1,7 +1,6 @@
 import { NextRequest } from 'next/server';
-import { eq, desc } from 'drizzle-orm';
-import { db } from '@/lib/db';
-import { alertHistory } from '@/lib/db/schema';
+import { desc } from 'drizzle-orm';
+import { db, getCompanyTables } from '@/lib/db';
 import { getSession, requireAuth, resolveCompanyId, apiError, apiSuccess } from '@/lib/api-utils';
 
 export async function GET(req: NextRequest) {
@@ -12,6 +11,8 @@ export async function GET(req: NextRequest) {
   const companyId = resolveCompanyId(session, req);
   if (!companyId) return apiError('회사 정보가 없습니다', 400);
 
+  const { alertHistory } = getCompanyTables(companyId);
+
   const url = new URL(req.url);
   const limit = Math.min(parseInt(url.searchParams.get('limit') ?? '50', 10), 200);
   const offset = parseInt(url.searchParams.get('offset') ?? '0', 10);
@@ -19,7 +20,6 @@ export async function GET(req: NextRequest) {
   const history = await db
     .select()
     .from(alertHistory)
-    .where(eq(alertHistory.companyId, companyId))
     .orderBy(desc(alertHistory.triggeredAt))
     .limit(limit)
     .offset(offset);

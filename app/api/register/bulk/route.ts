@@ -1,8 +1,7 @@
 import { NextRequest } from 'next/server';
 import * as XLSX from 'xlsx';
 import { getSession, requireAuth, getCompanyScope, isSuper, isAdminOrAbove, apiError, apiSuccess } from '@/lib/api-utils';
-import { db } from '@/lib/db';
-import { gateways, tags } from '@/lib/db/schema';
+import { db, getCompanyTables } from '@/lib/db';
 import { eq } from 'drizzle-orm';
 
 const MAC_REGEX = /^[0-9A-F]{12}$/;
@@ -66,13 +65,14 @@ export async function POST(req: NextRequest) {
       }
 
       try {
+        const { gateways } = getCompanyTables(companyId);
         const [existing] = await db.select().from(gateways).where(eq(gateways.gwMac, mac)).limit(1);
         if (existing) {
           results.gateways.fail++;
           results.gateways.errors.push(`행 ${i + 1}: ${mac} 이미 등록됨`);
           continue;
         }
-        await db.insert(gateways).values({ gwMac: mac, gwName: name, companyId });
+        await db.insert(gateways).values({ gwMac: mac, gwName: name });
         results.gateways.success++;
       } catch (e) {
         results.gateways.fail++;
@@ -107,13 +107,14 @@ export async function POST(req: NextRequest) {
       }
 
       try {
+        const { tags } = getCompanyTables(companyId);
         const [existing] = await db.select().from(tags).where(eq(tags.tagMac, mac)).limit(1);
         if (existing) {
           results.tags.fail++;
           results.tags.errors.push(`행 ${i + 1}: ${mac} 이미 등록됨`);
           continue;
         }
-        await db.insert(tags).values({ tagMac: mac, tagName: name, companyId, reportInterval });
+        await db.insert(tags).values({ tagMac: mac, tagName: name, reportInterval });
         results.tags.success++;
       } catch (e) {
         results.tags.fail++;

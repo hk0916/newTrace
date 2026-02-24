@@ -1,16 +1,7 @@
 import { NextRequest } from 'next/server';
 import { eq, and, sql, desc, isNull, inArray } from 'drizzle-orm';
 import { v4 as uuid } from 'uuid';
-import { db } from '@/lib/db';
-import {
-  alertSettings,
-  alertAcknowledgments,
-  alertHistory,
-  gateways,
-  gatewayStatus,
-  tags,
-  tagSensingData,
-} from '@/lib/db/schema';
+import { db, getCompanyTables } from '@/lib/db';
 import { getSession, requireAuth, resolveCompanyId, apiError, apiSuccess } from '@/lib/api-utils';
 
 export type AlertItem = {
@@ -33,10 +24,20 @@ export async function GET(req: NextRequest) {
   const sessionIat = (session as { sessionIat?: number }).sessionIat;
   if (!sessionIat) return apiError('세션 정보가 없습니다', 401);
 
+  const {
+    alertSettings,
+    alertAcknowledgments,
+    alertHistory,
+    gateways,
+    gatewayStatus,
+    tags,
+    tagSensingData,
+  } = getCompanyTables(companyId);
+
   const [settings] = await db
     .select()
     .from(alertSettings)
-    .where(eq(alertSettings.companyId, companyId))
+    .where(eq(alertSettings.id, 'default'))
     .limit(1);
 
   const tagHours = settings?.tagLastUpdateHours ?? 24;
@@ -60,8 +61,7 @@ export async function GET(req: NextRequest) {
         tagMac: tags.tagMac,
         tagName: tags.tagName,
       })
-      .from(tags)
-      .where(eq(tags.companyId, companyId));
+      .from(tags);
 
     for (const tag of tagList) {
       const [latest] = await db
@@ -99,7 +99,6 @@ export async function GET(req: NextRequest) {
       .innerJoin(gatewayStatus, eq(gateways.gwMac, gatewayStatus.gwMac))
       .where(
         and(
-          eq(gateways.companyId, companyId),
           eq(gatewayStatus.isConnected, false),
           sql`${gatewayStatus.lastConnectedAt} IS NOT NULL`
         )
@@ -125,7 +124,7 @@ export async function GET(req: NextRequest) {
     const tagList = await db
       .select({ tagMac: tags.tagMac, tagName: tags.tagName })
       .from(tags)
-      .where(and(eq(tags.companyId, companyId), eq(tags.isActive, true)));
+      .where(eq(tags.isActive, true));
 
     for (const tag of tagList) {
       const [latest] = await db
@@ -182,7 +181,6 @@ export async function GET(req: NextRequest) {
     .where(
       and(
         eq(alertAcknowledgments.userId, session!.user.id),
-        eq(alertAcknowledgments.companyId, companyId),
         eq(alertAcknowledgments.sessionIat, sessionIat)
       )
     );
@@ -198,7 +196,6 @@ export async function GET(req: NextRequest) {
       .from(alertHistory)
       .where(
         and(
-          eq(alertHistory.companyId, companyId),
           eq(alertHistory.alertType, alert.type),
           eq(alertHistory.alertKey, alert.key),
           isNull(alertHistory.resolvedAt)
@@ -209,7 +206,6 @@ export async function GET(req: NextRequest) {
     if (!existing) {
       await db.insert(alertHistory).values({
         id: uuid(),
-        companyId,
         alertType: alert.type,
         alertKey: alert.key,
         alertName: alert.title,
@@ -224,12 +220,7 @@ export async function GET(req: NextRequest) {
   const openHistory = await db
     .select({ id: alertHistory.id, alertType: alertHistory.alertType, alertKey: alertHistory.alertKey })
     .from(alertHistory)
-    .where(
-      and(
-        eq(alertHistory.companyId, companyId),
-        isNull(alertHistory.resolvedAt)
-      )
-    );
+    .where(isNull(alertHistory.resolvedAt));
 
   const resolvedIds = openHistory
     .filter((h) => !activeKeys.includes(`${h.alertType}:${h.alertKey}`))
