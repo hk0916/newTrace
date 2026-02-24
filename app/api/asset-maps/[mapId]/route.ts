@@ -42,7 +42,7 @@ export async function GET(
       heightPercent: assetMapGateways.heightPercent,
       color: assetMapGateways.color,
       isConnected: gatewayStatus.isConnected,
-      tagCount: sql<number>`(SELECT COUNT(*) FROM "${sql.raw(schemaName)}"."tags" WHERE assigned_gw_mac = ${assetMapGateways.gwMac} AND is_active = true)`.as('tag_count'),
+      tagCount: sql<number>`(SELECT COUNT(*) FROM ${sql.raw(`"${schemaName}"."tags"`)} WHERE assigned_gw_mac = ${sql.raw(`"${schemaName}"."asset_map_gateways"."gw_mac"`)} AND is_active = true)`.as('tag_count'),
     })
     .from(assetMapGateways)
     .innerJoin(gateways, eq(assetMapGateways.gwMac, gateways.gwMac))

@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
       otaServerUrl: gatewayStatus.otaServerUrl,
       wsServerUrl: gatewayStatus.wsServerUrl,
       lastConnectedAt: gatewayStatus.lastConnectedAt,
-      tagCount: sql<number>`(SELECT COUNT(*) FROM "${sql.raw(schemaName)}"."tags" WHERE assigned_gw_mac = ${gateways.gwMac} AND is_active = true)`.as('tag_count'),
+      tagCount: sql<number>`(SELECT COUNT(*) FROM ${sql.raw(`"${schemaName}"."tags"`)} WHERE assigned_gw_mac = ${sql.raw(`"${schemaName}"."gateways"."gw_mac"`)} AND is_active = true)`.as('tag_count'),
     })
     .from(gateways)
     .leftJoin(gatewayStatus, eq(gateways.gwMac, gatewayStatus.gwMac));

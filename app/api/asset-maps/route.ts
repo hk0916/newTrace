@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
       imageHeight: assetMaps.imageHeight,
       showOnDashboard: assetMaps.showOnDashboard,
       createdAt: assetMaps.createdAt,
-      gatewayCount: sql<number>`(SELECT COUNT(*) FROM "${sql.raw(schemaName)}"."asset_map_gateways" WHERE map_id = ${assetMaps.id})`.as('gateway_count'),
+      gatewayCount: sql<number>`(SELECT COUNT(*) FROM ${sql.raw(`"${schemaName}"."asset_map_gateways"`)} WHERE map_id = ${sql.raw(`"${schemaName}"."asset_maps"."id"`)})`.as('gateway_count'),
     })
     .from(assetMaps)
     .orderBy(desc(assetMaps.createdAt));
