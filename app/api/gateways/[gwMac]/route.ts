@@ -1,12 +1,11 @@
 import { NextRequest } from 'next/server';
-import { eq, and } from 'drizzle-orm';
-import { db } from '@/lib/db';
-import { gateways, gatewayStatus, tags } from '@/lib/db/schema';
-import { getSession, requireAuth, getCompanyScope, isSuper, isAdminOrAbove, apiError, apiSuccess } from '@/lib/api-utils';
+import { eq } from 'drizzle-orm';
+import { db, getCompanyTables } from '@/lib/db';
+import { getSession, requireAuth, resolveCompanyId, getCompanyScope, isSuper, isAdminOrAbove, apiError, apiSuccess } from '@/lib/api-utils';
 import { updateGatewaySchema } from '@/lib/validators/gateway';
 
 export async function GET(
-  _req: Request,
+  req: NextRequest,
   { params }: { params: Promise<{ gwMac: string }> }
 ) {
   const session = await getSession();
@@ -14,13 +13,15 @@ export async function GET(
   if (authError) return authError;
 
   const { gwMac } = await params;
-  const companyId = getCompanyScope(session);
+  const companyId = resolveCompanyId(session, req);
+  if (!companyId) return apiError('회사 정보가 없습니다', 400);
+
+  const { gateways, gatewayStatus, tags } = getCompanyTables(companyId);
 
   const [gateway] = await db
     .select({
       gwMac: gateways.gwMac,
       gwName: gateways.gwName,
-      companyId: gateways.companyId,
       location: gateways.location,
       description: gateways.description,
       isActive: gateways.isActive,
@@ -39,11 +40,7 @@ export async function GET(
     })
     .from(gateways)
     .leftJoin(gatewayStatus, eq(gateways.gwMac, gatewayStatus.gwMac))
-    .where(
-      isSuper(session)
-        ? eq(gateways.gwMac, gwMac)
-        : and(eq(gateways.gwMac, gwMac), eq(gateways.companyId, companyId!))
-    )
+    .where(eq(gateways.gwMac, gwMac))
     .limit(1);
 
   if (!gateway) return apiError('게이트웨이를 찾을 수 없습니다', 404);
@@ -66,16 +63,15 @@ export async function PUT(
   if (!isAdminOrAbove(session)) return apiError('관리자 권한이 필요합니다', 403);
 
   const { gwMac } = await params;
-  const companyId = getCompanyScope(session);
+  const companyId = resolveCompanyId(session, req);
+  if (!companyId) return apiError('회사 정보가 없습니다', 400);
+
+  const { gateways } = getCompanyTables(companyId);
 
   const [existing] = await db
     .select()
     .from(gateways)
-    .where(
-      isSuper(session)
-        ? eq(gateways.gwMac, gwMac)
-        : and(eq(gateways.gwMac, gwMac), eq(gateways.companyId, companyId!))
-    )
+    .where(eq(gateways.gwMac, gwMac))
     .limit(1);
 
   if (!existing) return apiError('게이트웨이를 찾을 수 없습니다', 404);
@@ -100,7 +96,7 @@ export async function PUT(
 }
 
 export async function DELETE(
-  _req: Request,
+  req: NextRequest,
   { params }: { params: Promise<{ gwMac: string }> }
 ) {
   const session = await getSession();
@@ -109,16 +105,15 @@ export async function DELETE(
   if (!isAdminOrAbove(session)) return apiError('관리자 권한이 필요합니다', 403);
 
   const { gwMac } = await params;
-  const companyId = getCompanyScope(session);
+  const companyId = resolveCompanyId(session, req);
+  if (!companyId) return apiError('회사 정보가 없습니다', 400);
+
+  const { gateways, gatewayStatus, tags } = getCompanyTables(companyId);
 
   const [existing] = await db
     .select()
     .from(gateways)
-    .where(
-      isSuper(session)
-        ? eq(gateways.gwMac, gwMac)
-        : and(eq(gateways.gwMac, gwMac), eq(gateways.companyId, companyId!))
-    )
+    .where(eq(gateways.gwMac, gwMac))
     .limit(1);
 
   if (!existing) return apiError('게이트웨이를 찾을 수 없습니다', 404);

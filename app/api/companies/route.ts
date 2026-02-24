@@ -1,8 +1,8 @@
 import { NextRequest } from 'next/server';
 import { ne } from 'drizzle-orm';
 import { v4 as uuid } from 'uuid';
-import { db } from '@/lib/db';
-import { companies } from '@/lib/db/schema';
+import { db, companies } from '@/lib/db';
+import { createCompanySchemaInDb } from '@/lib/db/company-schema-manager';
 import { createCompanySchema } from '@/lib/validators/company';
 import { getSession, requireSuper, isSuper, apiError, apiSuccess } from '@/lib/api-utils';
 
@@ -45,5 +45,7 @@ export async function POST(req: NextRequest) {
   };
 
   await db.insert(companies).values(newCompany);
+  // 회사 생성 시 전용 스키마(tenant_{id}) 자동 생성
+  await createCompanySchemaInDb(newCompany.id);
   return apiSuccess(newCompany, 201);
 }

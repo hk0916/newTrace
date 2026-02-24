@@ -1,8 +1,7 @@
 import { NextRequest } from 'next/server';
 import { eq, and, desc, gte, lte } from 'drizzle-orm';
-import { db } from '@/lib/db';
-import { tags, tagSensingData } from '@/lib/db/schema';
-import { getSession, requireAuth, getCompanyScope, isSuper, apiError, apiSuccess } from '@/lib/api-utils';
+import { db, getCompanyTables } from '@/lib/db';
+import { getSession, requireAuth, resolveCompanyId, apiError, apiSuccess } from '@/lib/api-utils';
 
 export async function GET(
   req: NextRequest,
@@ -13,16 +12,15 @@ export async function GET(
   if (authError) return authError;
 
   const { tagMac } = await params;
-  const companyId = getCompanyScope(session);
+  const companyId = resolveCompanyId(session, req);
+  if (!companyId) return apiError('회사 정보가 없습니다', 400);
+
+  const { tags, tagSensingData } = getCompanyTables(companyId);
 
   const [tag] = await db
     .select()
     .from(tags)
-    .where(
-      isSuper(session)
-        ? eq(tags.tagMac, tagMac)
-        : and(eq(tags.tagMac, tagMac), eq(tags.companyId, companyId!))
-    )
+    .where(eq(tags.tagMac, tagMac))
     .limit(1);
 
   if (!tag) return apiError('태그를 찾을 수 없습니다', 404);

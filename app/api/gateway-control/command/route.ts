@@ -1,7 +1,6 @@
 import { NextRequest } from 'next/server';
 import { eq } from 'drizzle-orm';
-import { db } from '@/lib/db';
-import { gateways } from '@/lib/db/schema';
+import { db, getCompanyTables } from '@/lib/db';
 import { gatewayCommandSchema } from '@/lib/validators/gateway-command';
 import {
   getSession,
@@ -33,14 +32,14 @@ export async function POST(req: NextRequest) {
 
   // 게이트웨이 소유권 확인 (all이 아닌 경우)
   if (gwMac !== 'all') {
+    const { gateways } = getCompanyTables(companyId);
     const [gw] = await db
-      .select({ companyId: gateways.companyId })
+      .select({ gwMac: gateways.gwMac })
       .from(gateways)
       .where(eq(gateways.gwMac, gwMac))
       .limit(1);
 
     if (!gw) return apiError('게이트웨이를 찾을 수 없습니다', 404);
-    if (gw.companyId !== companyId) return apiError('해당 게이트웨이에 대한 권한이 없습니다', 403);
   }
 
   // WS 서버 명령 API로 포워딩

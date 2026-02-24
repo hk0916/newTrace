@@ -1,7 +1,6 @@
 import { getSession, requireAuth, resolveCompanyId, isAdminOrAbove, apiError, apiSuccess } from '@/lib/api-utils';
-import { db } from '@/lib/db';
-import { assetMaps } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { db, getCompanyTables } from '@/lib/db';
+import { eq } from 'drizzle-orm';
 
 import { NextRequest } from 'next/server';
 
@@ -19,11 +18,12 @@ export async function POST(
   if (!companyId) return apiError('회사를 선택해주세요', 400);
 
   const { mapId } = await params;
+  const { assetMaps } = getCompanyTables(companyId);
 
   const [map] = await db
     .select({ id: assetMaps.id, showOnDashboard: assetMaps.showOnDashboard })
     .from(assetMaps)
-    .where(and(eq(assetMaps.id, mapId), eq(assetMaps.companyId, companyId)))
+    .where(eq(assetMaps.id, mapId))
     .limit(1);
 
   if (!map) return apiError('맵을 찾을 수 없습니다', 404);

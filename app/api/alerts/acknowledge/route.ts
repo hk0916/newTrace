@@ -1,8 +1,7 @@
 import { NextRequest } from 'next/server';
 import { eq, and, isNull } from 'drizzle-orm';
 import { v4 as uuid } from 'uuid';
-import { db } from '@/lib/db';
-import { alertAcknowledgments, alertHistory, companies } from '@/lib/db/schema';
+import { db, companies, getCompanyTables } from '@/lib/db';
 import {
   getSession,
   requireAuth,
@@ -59,6 +58,8 @@ export async function POST(req: NextRequest) {
     .limit(1);
   if (!company) return apiError('회사를 찾을 수 없습니다', 404);
 
+  const { alertAcknowledgments, alertHistory } = getCompanyTables(companyId);
+
   const validTypes = ['tag_stale', 'gw_disconnected', 'high_temp', 'low_temp', 'low_voltage'];
   for (const k of body.keys!) {
     if (!validTypes.includes(k.type)) {
@@ -73,7 +74,6 @@ export async function POST(req: NextRequest) {
       .where(
         and(
           eq(alertAcknowledgments.userId, session!.user.id),
-          eq(alertAcknowledgments.companyId, companyId),
           eq(alertAcknowledgments.alertType, k.type),
           eq(alertAcknowledgments.alertKey, k.key),
           eq(alertAcknowledgments.sessionIat, sessionIat)
@@ -85,7 +85,6 @@ export async function POST(req: NextRequest) {
     await db.insert(alertAcknowledgments).values({
       id: uuid(),
       userId: session!.user.id,
-      companyId,
       alertType: k.type,
       alertKey: k.key,
       sessionIat,
@@ -97,7 +96,6 @@ export async function POST(req: NextRequest) {
       .from(alertHistory)
       .where(
         and(
-          eq(alertHistory.companyId, companyId),
           eq(alertHistory.alertType, k.type),
           eq(alertHistory.alertKey, k.key),
           isNull(alertHistory.resolvedAt)

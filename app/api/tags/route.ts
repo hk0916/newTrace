@@ -1,7 +1,6 @@
 import { NextRequest } from 'next/server';
 import { eq, and, desc } from 'drizzle-orm';
-import { db } from '@/lib/db';
-import { tags, tagSensingData, gateways } from '@/lib/db/schema';
+import { db, getCompanyTables } from '@/lib/db';
 import { createTagSchema } from '@/lib/validators/tag';
 import {
   getSession,
@@ -22,11 +21,13 @@ export async function GET(req: NextRequest) {
   const companyId = resolveCompanyId(session, req);
   if (!companyId) return apiError('회사 정보가 없습니다', 400);
 
+  const { tags, tagSensingData } = getCompanyTables(companyId);
+
   const gwMacFilter = req.nextUrl.searchParams.get('gwMac');
   const search = req.nextUrl.searchParams.get('search')?.toLowerCase().trim() || '';
   const sortOrder = req.nextUrl.searchParams.get('order') === 'asc' ? 'asc' : 'desc';
 
-  const conditions = [eq(tags.companyId, companyId)];
+  const conditions = [];
   if (gwMacFilter) {
     conditions.push(eq(tags.assignedGwMac, gwMacFilter));
   }
@@ -34,7 +35,7 @@ export async function GET(req: NextRequest) {
   const tagList = await db
     .select()
     .from(tags)
-    .where(and(...conditions));
+    .where(conditions.length > 0 ? and(...conditions) : undefined);
 
   let result = await Promise.all(
     tagList.map(async (tag) => {
@@ -91,6 +92,8 @@ export async function POST(req: NextRequest) {
     return apiError('다른 회사의 태그를 등록할 수 없습니다', 403);
   }
 
+  const { tags, gateways } = getCompanyTables(companyId);
+
   const existing = await db.select().from(tags).where(eq(tags.tagMac, tagMac)).limit(1);
   if (existing.length > 0) {
     return apiError('이미 등록된 MAC 주소입니다', 409);
@@ -98,12 +101,12 @@ export async function POST(req: NextRequest) {
 
   if (assignedGwMac) {
     const [gw] = await db.select().from(gateways).where(
-      and(eq(gateways.gwMac, assignedGwMac), eq(gateways.companyId, companyId))
+      eq(gateways.gwMac, assignedGwMac)
     ).limit(1);
     if (!gw) return apiError('해당 게이트웨이를 찾을 수 없습니다', 404);
   }
 
-  const newTag = { tagMac, tagName, companyId, assignedGwMac, reportInterval, assetType, description };
+  const newTag = { tagMac, tagName, assignedGwMac, reportInterval, assetType, description };
   await db.insert(tags).values(newTag);
   return apiSuccess(newTag, 201);
 }

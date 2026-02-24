@@ -1,7 +1,6 @@
 import { NextRequest } from 'next/server';
 import { getSession, requireAuth, resolveCompanyId, isAdminOrAbove, apiError, apiSuccess } from '@/lib/api-utils';
-import { db } from '@/lib/db';
-import { assetMaps, assetMapGateways, gateways, gatewayStatus, tags } from '@/lib/db/schema';
+import { db, getCompanyTables } from '@/lib/db';
 import { eq, and, sql } from 'drizzle-orm';
 import { unlink } from 'fs/promises';
 import path from 'path';
@@ -20,10 +19,13 @@ export async function GET(
   const companyId = resolveCompanyId(session, req);
   if (!companyId) return apiError('회사를 선택해주세요', 400);
 
+  const { assetMaps, assetMapGateways, gateways, gatewayStatus } = getCompanyTables(companyId);
+  const schemaName = `tenant_${companyId}`;
+
   const [map] = await db
     .select()
     .from(assetMaps)
-    .where(and(eq(assetMaps.id, mapId), eq(assetMaps.companyId, companyId)))
+    .where(eq(assetMaps.id, mapId))
     .limit(1);
 
   if (!map) return apiError('맵을 찾을 수 없습니다', 404);
@@ -40,7 +42,7 @@ export async function GET(
       heightPercent: assetMapGateways.heightPercent,
       color: assetMapGateways.color,
       isConnected: gatewayStatus.isConnected,
-      tagCount: sql<number>`(SELECT COUNT(*) FROM tags WHERE assigned_gw_mac = "asset_map_gateways"."gw_mac" AND is_active = true)`.as('tag_count'),
+      tagCount: sql<number>`(SELECT COUNT(*) FROM ${sql.raw(`"${schemaName}"."tags"`)} WHERE assigned_gw_mac = ${sql.raw(`"${schemaName}"."asset_map_gateways"."gw_mac"`)} AND is_active = true)`.as('tag_count'),
     })
     .from(assetMapGateways)
     .innerJoin(gateways, eq(assetMapGateways.gwMac, gateways.gwMac))
@@ -63,10 +65,12 @@ export async function PUT(
   const companyId = resolveCompanyId(session, req);
   if (!companyId) return apiError('회사를 선택해주세요', 400);
 
+  const { assetMaps } = getCompanyTables(companyId);
+
   const [existing] = await db
     .select()
     .from(assetMaps)
-    .where(and(eq(assetMaps.id, mapId), eq(assetMaps.companyId, companyId)))
+    .where(eq(assetMaps.id, mapId))
     .limit(1);
 
   if (!existing) return apiError('맵을 찾을 수 없습니다', 404);
@@ -102,10 +106,12 @@ export async function DELETE(
   const companyId = resolveCompanyId(session, req);
   if (!companyId) return apiError('회사를 선택해주세요', 400);
 
+  const { assetMaps } = getCompanyTables(companyId);
+
   const [existing] = await db
     .select()
     .from(assetMaps)
-    .where(and(eq(assetMaps.id, mapId), eq(assetMaps.companyId, companyId)))
+    .where(eq(assetMaps.id, mapId))
     .limit(1);
 
   if (!existing) return apiError('맵을 찾을 수 없습니다', 404);

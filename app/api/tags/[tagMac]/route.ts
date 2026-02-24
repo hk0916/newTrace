@@ -1,12 +1,11 @@
 import { NextRequest } from 'next/server';
-import { eq, and, desc } from 'drizzle-orm';
-import { db } from '@/lib/db';
-import { tags, tagSensingData, gateways } from '@/lib/db/schema';
-import { getSession, requireAuth, getCompanyScope, isSuper, isAdminOrAbove, apiError, apiSuccess } from '@/lib/api-utils';
+import { eq, desc } from 'drizzle-orm';
+import { db, getCompanyTables } from '@/lib/db';
+import { getSession, requireAuth, resolveCompanyId, isAdminOrAbove, apiError, apiSuccess } from '@/lib/api-utils';
 import { updateTagSchema } from '@/lib/validators/tag';
 
 export async function GET(
-  _req: Request,
+  req: NextRequest,
   { params }: { params: Promise<{ tagMac: string }> }
 ) {
   const session = await getSession();
@@ -14,16 +13,15 @@ export async function GET(
   if (authError) return authError;
 
   const { tagMac } = await params;
-  const companyId = getCompanyScope(session);
+  const companyId = resolveCompanyId(session, req);
+  if (!companyId) return apiError('회사 정보가 없습니다', 400);
+
+  const { tags, tagSensingData } = getCompanyTables(companyId);
 
   const [tag] = await db
     .select()
     .from(tags)
-    .where(
-      isSuper(session)
-        ? eq(tags.tagMac, tagMac)
-        : and(eq(tags.tagMac, tagMac), eq(tags.companyId, companyId!))
-    )
+    .where(eq(tags.tagMac, tagMac))
     .limit(1);
 
   if (!tag) return apiError('태그를 찾을 수 없습니다', 404);
@@ -48,16 +46,15 @@ export async function PUT(
   if (!isAdminOrAbove(session)) return apiError('관리자 권한이 필요합니다', 403);
 
   const { tagMac } = await params;
-  const companyId = getCompanyScope(session);
+  const companyId = resolveCompanyId(session, req);
+  if (!companyId) return apiError('회사 정보가 없습니다', 400);
+
+  const { tags, gateways } = getCompanyTables(companyId);
 
   const [existing] = await db
     .select()
     .from(tags)
-    .where(
-      isSuper(session)
-        ? eq(tags.tagMac, tagMac)
-        : and(eq(tags.tagMac, tagMac), eq(tags.companyId, companyId!))
-    )
+    .where(eq(tags.tagMac, tagMac))
     .limit(1);
 
   if (!existing) return apiError('태그를 찾을 수 없습니다', 404);
@@ -76,12 +73,7 @@ export async function PUT(
     const [gw] = await db
       .select()
       .from(gateways)
-      .where(
-        and(
-          eq(gateways.gwMac, assignedGw),
-          eq(gateways.companyId, existing.companyId)
-        )
-      )
+      .where(eq(gateways.gwMac, assignedGw))
       .limit(1);
     if (!gw) return apiError('해당 게이트웨이를 찾을 수 없습니다', 404);
   }
@@ -103,7 +95,7 @@ export async function PUT(
 }
 
 export async function DELETE(
-  _req: Request,
+  req: NextRequest,
   { params }: { params: Promise<{ tagMac: string }> }
 ) {
   const session = await getSession();
@@ -112,16 +104,15 @@ export async function DELETE(
   if (!isAdminOrAbove(session)) return apiError('관리자 권한이 필요합니다', 403);
 
   const { tagMac } = await params;
-  const companyId = getCompanyScope(session);
+  const companyId = resolveCompanyId(session, req);
+  if (!companyId) return apiError('회사 정보가 없습니다', 400);
+
+  const { tags, tagSensingData } = getCompanyTables(companyId);
 
   const [existing] = await db
     .select()
     .from(tags)
-    .where(
-      isSuper(session)
-        ? eq(tags.tagMac, tagMac)
-        : and(eq(tags.tagMac, tagMac), eq(tags.companyId, companyId!))
-    )
+    .where(eq(tags.tagMac, tagMac))
     .limit(1);
 
   if (!existing) return apiError('태그를 찾을 수 없습니다', 404);
