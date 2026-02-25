@@ -1,10 +1,9 @@
-import { eq, and, desc, sql } from 'drizzle-orm';
+import { eq, desc, sql } from 'drizzle-orm';
 import { Suspense } from 'react';
 import { cookies } from 'next/headers';
 import { getTranslations } from 'next-intl/server';
 import { auth } from '@/lib/auth';
-import { db } from '@/lib/db';
-import { gateways, gatewayStatus, tags, tagSensingData, assetMaps, assetMapGateways } from '@/lib/db/schema';
+import { db, getCompanyTables } from '@/lib/db';
 import { COMPANY_COOKIE_NAME } from '@/lib/company-cookie';
 import { StatsCards } from './components/stats-cards';
 import { GatewayTable } from './components/gateway-table';
@@ -45,6 +44,11 @@ export default async function DashboardPage({
   }
 
   const cid = companyId as string;
+  const {
+    gateways, gatewayStatus, tags, tagSensingData,
+    assetMaps, assetMapGateways,
+  } = getCompanyTables(cid);
+  const schemaName = `tenant_${cid}`;
 
   // 통계 데이터
   const [gwStats] = await db
@@ -52,24 +56,21 @@ export default async function DashboardPage({
       total: sql<number>`count(*)`,
       active: sql<number>`count(*) filter (where ${gateways.isActive} = true)`,
     })
-    .from(gateways)
-    .where(eq(gateways.companyId, cid));
+    .from(gateways);
 
   const [connStats] = await db
     .select({
       connected: sql<number>`count(*) filter (where ${gatewayStatus.isConnected} = true)`,
     })
     .from(gatewayStatus)
-    .innerJoin(gateways, eq(gatewayStatus.gwMac, gateways.gwMac))
-    .where(eq(gateways.companyId, cid));
+    .innerJoin(gateways, eq(gatewayStatus.gwMac, gateways.gwMac));
 
   const [tagStats] = await db
     .select({
       total: sql<number>`count(*)`,
       active: sql<number>`count(*) filter (where ${tags.isActive} = true)`,
     })
-    .from(tags)
-    .where(eq(tags.companyId, cid));
+    .from(tags);
 
   const stats = {
     gateways: { total: gwStats.total, active: gwStats.active, connected: connStats.connected },
@@ -81,7 +82,7 @@ export default async function DashboardPage({
   const mapList = await db
     .select()
     .from(assetMaps)
-    .where(and(eq(assetMaps.companyId, cid), eq(assetMaps.showOnDashboard, true)));
+    .where(eq(assetMaps.showOnDashboard, true));
 
   const mapsWithPlacements = await Promise.all(
     mapList.map(async (map) => {
@@ -95,7 +96,8 @@ export default async function DashboardPage({
           widthPercent: assetMapGateways.widthPercent,
           heightPercent: assetMapGateways.heightPercent,
           isConnected: gatewayStatus.isConnected,
-          tagCount: sql<number>`(SELECT COUNT(*) FROM tags WHERE assigned_gw_mac = ${assetMapGateways.gwMac} AND is_active = true)`.as('tag_count'),
+          color: assetMapGateways.color,
+          tagCount: sql<number>`(SELECT COUNT(*) FROM ${sql.raw(`"${schemaName}"."tags"`)} WHERE assigned_gw_mac = ${sql.raw(`"${schemaName}"."asset_map_gateways"."gw_mac"`)} AND is_active = true)`.as('tag_count'),
         })
         .from(assetMapGateways)
         .innerJoin(gateways, eq(assetMapGateways.gwMac, gateways.gwMac))
@@ -119,6 +121,7 @@ export default async function DashboardPage({
           heightPercent: Number(p.heightPercent),
           isConnected: p.isConnected ?? false,
           tagCount: Number(p.tagCount),
+          color: p.color ?? undefined,
         })),
       };
     })
@@ -135,11 +138,10 @@ export default async function DashboardPage({
       isConnected: gatewayStatus.isConnected,
       fwVersion: gatewayStatus.fwVersion,
       lastConnectedAt: gatewayStatus.lastConnectedAt,
-      tagCount: sql<number>`(SELECT COUNT(*) FROM tags WHERE assigned_gw_mac = ${gateways.gwMac} AND is_active = true)`,
+      tagCount: sql<number>`(SELECT COUNT(*) FROM ${sql.raw(`"${schemaName}"."tags"`)} WHERE assigned_gw_mac = ${sql.raw(`"${schemaName}"."gateways"."gw_mac"`)} AND is_active = true)`,
     })
     .from(gateways)
-    .leftJoin(gatewayStatus, eq(gateways.gwMac, gatewayStatus.gwMac))
-    .where(eq(gateways.companyId, cid));
+    .leftJoin(gatewayStatus, eq(gateways.gwMac, gatewayStatus.gwMac));
 
   if (gwSearch) {
     const s = gwSearch.replace(/[:\-]/g, '').toLowerCase();
@@ -159,8 +161,7 @@ export default async function DashboardPage({
   // 태그 목록 + 최신 센싱 데이터
   const tagList = await db
     .select()
-    .from(tags)
-    .where(eq(tags.companyId, cid));
+    .from(tags);
 
   let tagsWithSensing = await Promise.all(
     tagList.map(async (tag) => {
