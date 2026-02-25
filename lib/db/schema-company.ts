@@ -121,6 +121,15 @@ export function createCompanySchema(companyId: string) {
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
   });
 
+  // 태그 RSSI 버퍼 (정확도 모드용 — 1분 주기 위치 결정)
+  const tagRssiBuffer = schema.table('tag_rssi_buffer', {
+    id: varchar('id', { length: 50 }).primaryKey(),
+    tagMac: varchar('tag_mac', { length: 12 }).notNull(),
+    gwMac: varchar('gw_mac', { length: 12 }).notNull(),
+    rssi: integer('rssi').notNull(),
+    sensedAt: timestamp('sensed_at').defaultNow().notNull(),
+  });
+
   // 자산맵 게이트웨이 배치
   const assetMapGateways = schema.table('asset_map_gateways', {
     id: varchar('id', { length: 50 }).primaryKey(),
@@ -196,6 +205,7 @@ export function createCompanySchema(companyId: string) {
     alertSettings,
     alertHistory,
     alertAcknowledgments,
+    tagRssiBuffer,
     assetMaps,
     assetMapGateways,
     // relations (drizzle 내부 등록용)

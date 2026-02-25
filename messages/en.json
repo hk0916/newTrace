@@ -44,7 +44,14 @@
     "timezoneDesc": "Set the timezone used for all timestamps displayed in the dashboard. For isolated networks, set this manually.",
     "timezone": "Timezone",
     "timezoneHint": "'Auto' uses the browser's local timezone. For isolated network environments, select the timezone of the deployment region.",
-    "timezonePreview": "Current Time Preview"
+    "timezonePreview": "Current Time Preview",
+    "locationModeTitle": "Location Mode",
+    "locationModeDesc": "Choose how tag location (assigned gateway) is determined.",
+    "locationMode": "Location Method",
+    "locationModeRealtime": "Realtime",
+    "locationModeRealtimeDesc": "Assign tag to gateway immediately upon data reception",
+    "locationModeAccuracy": "Accuracy",
+    "locationModeAccuracyDesc": "Calculate average RSSI over last 10 minutes and assign to gateway with highest average (every 1 min)"
   },
   "auth": {
     "platformName": "TraceTag",

@@ -136,6 +136,22 @@ export async function createCompanySchemaInDb(companyId: string): Promise<void> 
     )
   `);
 
+  // 태그 RSSI 버퍼 (정확도 모드)
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS ${sql.raw(`"${schemaName}"`)}.tag_rssi_buffer (
+      id         VARCHAR(50)  PRIMARY KEY,
+      tag_mac    VARCHAR(12)  NOT NULL,
+      gw_mac     VARCHAR(12)  NOT NULL,
+      rssi       INTEGER      NOT NULL,
+      sensed_at  TIMESTAMP    NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  await db.execute(sql`
+    CREATE INDEX IF NOT EXISTS idx_tag_rssi_buffer_tag_mac
+      ON ${sql.raw(`"${schemaName}"`)}.tag_rssi_buffer (tag_mac, sensed_at DESC)
+  `);
+
   // 자산맵
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS ${sql.raw(`"${schemaName}"`)}.asset_maps (

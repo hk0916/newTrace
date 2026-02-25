@@ -44,7 +44,14 @@
     "timezoneDesc": "대시보드에 표시되는 모든 시각의 기준 시간대를 설정합니다. 폐쇄망 환경에서는 직접 설정하세요.",
     "timezone": "시간대",
     "timezoneHint": "'자동'은 접속자의 브라우저 시간대를 사용합니다. 폐쇄망 환경에서는 사용 지역의 시간대를 직접 선택하세요.",
-    "timezonePreview": "현재 시각 미리보기"
+    "timezonePreview": "현재 시각 미리보기",
+    "locationModeTitle": "위치 결정 모드",
+    "locationModeDesc": "태그의 위치(할당 게이트웨이)를 결정하는 방식을 선택합니다.",
+    "locationMode": "위치 결정 방식",
+    "locationModeRealtime": "실시간 우선",
+    "locationModeRealtimeDesc": "태그 데이터 수신 즉시 해당 게이트웨이로 위치 변경",
+    "locationModeAccuracy": "정확도 우선",
+    "locationModeAccuracyDesc": "최근 10분간 RSSI 평균을 계산하여 가장 높은 게이트웨이로 결정 (1분 주기)"
   },
   "auth": {
     "platformName": "TraceTag",

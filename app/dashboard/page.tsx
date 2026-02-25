@@ -11,6 +11,7 @@ import { TagTable } from './components/tag-table';
 import { DashboardRefresh } from './components/dashboard-refresh';
 import { TableFilter } from './components/table-filter';
 import { DashboardMapPreview } from './components/dashboard-map-preview';
+import { DashboardCompanySelect } from './components/dashboard-company-select';
 
 export default async function DashboardPage({
   searchParams,
@@ -212,8 +213,11 @@ export default async function DashboardPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{t('title')}</h1>
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold">{t('title')}</h1>
+          <DashboardCompanySelect />
+        </div>
         <DashboardRefresh />
       </div>
 

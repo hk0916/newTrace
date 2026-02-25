@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Settings, Clock, Save, KeyRound, CheckCircle2 } from 'lucide-react';
+import { Settings, Clock, Save, KeyRound, CheckCircle2, MapPin } from 'lucide-react';
 import { useCompanyId } from '../hooks/use-company-id';
 import { setCompanyIdCookie } from '@/lib/company-cookie';
 import { formatDateTime } from '@/lib/utils';
@@ -50,6 +50,7 @@ export default function SettingsPage() {
   const [companies, setCompanies] = useState<{ id: string; name: string }[]>([]);
   const [companyId, setCompanyId] = useState('');
   const [timezone, setTimezone] = useState('browser');
+  const [locationMode, setLocationMode] = useState('realtime');
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(false);
   const [previewNow, setPreviewNow] = useState(new Date().toISOString());
@@ -82,6 +83,7 @@ export default function SettingsPage() {
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (data?.timezone) setTimezone(data.timezone);
+        if (data?.locationMode) setLocationMode(data.locationMode);
       });
   }, [companyId]);
 
@@ -125,7 +127,7 @@ export default function SettingsPage() {
     const res = await fetch('/api/company-settings', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ companyId, timezone }),
+      body: JSON.stringify({ companyId, timezone, locationMode }),
     });
     setLoading(false);
     if (res.ok) {
@@ -211,6 +213,39 @@ export default function SettingsPage() {
             <Save className="h-4 w-4 mr-2" />
             {saved ? tCommon('saved') : tCommon('save')}
           </Button>
+        </CardContent>
+      </Card>
+
+      {/* 위치 결정 모드 카드 */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MapPin className="h-5 w-5" />
+            {t('locationModeTitle')}
+          </CardTitle>
+          <CardDescription>{t('locationModeDesc')}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="locationMode">{t('locationMode')}</Label>
+            <Select value={locationMode} onValueChange={setLocationMode}>
+              <SelectTrigger id="locationMode" className="max-w-md">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="realtime">{t('locationModeRealtime')}</SelectItem>
+                <SelectItem value="accuracy">{t('locationModeAccuracy')}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="rounded-lg bg-muted/50 p-4 space-y-1">
+            <p className="text-sm font-medium text-muted-foreground">
+              {locationMode === 'realtime'
+                ? t('locationModeRealtimeDesc')
+                : t('locationModeAccuracyDesc')}
+            </p>
+          </div>
         </CardContent>
       </Card>
 

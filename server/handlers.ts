@@ -1,4 +1,4 @@
-import { eq, sql } from 'drizzle-orm';
+import { eq, sql, gt } from 'drizzle-orm';
 import { v4 as uuid } from 'uuid';
 import type WebSocket from 'ws';
 import { db } from '../lib/db';
@@ -19,6 +19,25 @@ export const connectedGateways = new Map<string, WebSocket>();
 
 // GW MAC → companyId 캐시 (매 패킷마다 DB 조회 방지)
 const gwCompanyCache = new Map<string, string>();
+
+// companyId → locationMode 캐시 (5분마다 리프레시)
+const locationModeCache = new Map<string, { mode: string; fetchedAt: number }>();
+const LOCATION_MODE_CACHE_TTL = 5 * 60 * 1000; // 5분
+
+async function getLocationMode(companyId: string): Promise<string> {
+  const cached = locationModeCache.get(companyId);
+  if (cached && Date.now() - cached.fetchedAt < LOCATION_MODE_CACHE_TTL) {
+    return cached.mode;
+  }
+  const [row] = await db
+    .select({ locationMode: companies.locationMode })
+    .from(companies)
+    .where(eq(companies.id, companyId))
+    .limit(1);
+  const mode = row?.locationMode ?? 'realtime';
+  locationModeCache.set(companyId, { mode, fetchedAt: Date.now() });
+  return mode;
+}
 
 /**
  * GW MAC으로 소속 companyId 조회 (캐시 우선)
@@ -202,6 +221,9 @@ async function handleGwInfo(
 /**
  * 0x0A - 태그 센싱 데이터 처리
  * GW의 company 스키마에서 태그 확인 후 센싱 데이터 저장
+ * locationMode에 따라 위치 결정 분기:
+ *   realtime → 즉시 assignedGwMac 변경
+ *   accuracy → tagRssiBuffer에 INSERT만 (1분 주기 배치로 위치 결정)
  */
 async function handleTagData(data: Buffer, clientInfo: ClientInfo): Promise<void> {
   const tagData = parseTagData(data);
@@ -209,7 +231,7 @@ async function handleTagData(data: Buffer, clientInfo: ClientInfo): Promise<void
   const companyId = await resolveGwCompany(tagData.gwMac);
   if (companyId === 'unregistered') return; // 미등록 GW 태그는 저장하지 않음
 
-  const { tags, tagSensingData } = getCompanyTables(companyId);
+  const { tags, tagSensingData, tagRssiBuffer } = getCompanyTables(companyId);
 
   const [tag] = await db
     .select()
@@ -219,6 +241,7 @@ async function handleTagData(data: Buffer, clientInfo: ClientInfo): Promise<void
 
   if (!tag) return; // 미등록 태그는 스킵
 
+  // 센싱 데이터는 두 모드 모두 저장
   await db.insert(tagSensingData).values({
     id: uuid(),
     tagMac: tagData.tagMac,
@@ -230,17 +253,101 @@ async function handleTagData(data: Buffer, clientInfo: ClientInfo): Promise<void
     rawData: tagData.rawAdvData,
   });
 
-  if (tag.assignedGwMac !== tagData.gwMac) {
-    await db
-      .update(tags)
-      .set({ assignedGwMac: tagData.gwMac })
-      .where(eq(tags.tagMac, tagData.tagMac));
+  const mode = await getLocationMode(companyId);
+
+  if (mode === 'accuracy') {
+    // 정확도 모드: RSSI 버퍼에 저장만 (위치 변경은 processAccuracyLocations에서)
+    await db.insert(tagRssiBuffer).values({
+      id: uuid(),
+      tagMac: tagData.tagMac,
+      gwMac: tagData.gwMac,
+      rssi: tagData.rssi,
+    });
+  } else {
+    // 실시간 모드: 즉시 assignedGwMac 변경
+    if (tag.assignedGwMac !== tagData.gwMac) {
+      await db
+        .update(tags)
+        .set({ assignedGwMac: tagData.gwMac })
+        .where(eq(tags.tagMac, tagData.tagMac));
+    }
   }
 
   console.log(
     `[WS] 태그 데이터: ${tagData.tagMac} via ${tagData.gwMac} | ` +
-    `RSSI: ${tagData.rssi}, 온도: ${tagData.temperature}°C, 전압: ${tagData.voltage}V`
+    `RSSI: ${tagData.rssi}, 온도: ${tagData.temperature}°C, 전압: ${tagData.voltage}V` +
+    ` [${mode}]`
   );
+}
+
+/**
+ * 1분 주기 — accuracy 모드 회사의 태그 위치 결정
+ * tag_rssi_buffer에서 최근 10분 데이터를 기반으로
+ * 태그별 게이트웨이 평균 RSSI 계산 → 가장 높은 GW로 assignedGwMac 업데이트
+ *
+ * 태그 보고 주기가 10초~900초로 다양하므로, 10분 윈도우를 사용하여
+ * 장주기 태그도 충분한 샘플이 모이도록 함.
+ * 데이터가 아직 없는 태그는 기존 assignedGwMac을 유지(건드리지 않음).
+ */
+export async function processAccuracyLocations(): Promise<void> {
+  try {
+    // accuracy 모드인 회사 목록 조회
+    const accuracyCompanies = await db
+      .select({ id: companies.id })
+      .from(companies)
+      .where(eq(companies.locationMode, 'accuracy'));
+
+    if (accuracyCompanies.length === 0) return;
+
+    const cutoff10m = new Date(Date.now() - 10 * 60_000);
+    const cutoff30m = new Date(Date.now() - 30 * 60_000);
+
+    for (const { id: companyId } of accuracyCompanies) {
+      const schemaName = `tenant_${companyId}`;
+
+      // 태그별·게이트웨이별 평균 RSSI 계산 (최근 10분)
+      const avgResults = await db.execute<{
+        tag_mac: string;
+        gw_mac: string;
+        avg_rssi: number;
+      }>(sql`
+        SELECT tag_mac, gw_mac, AVG(rssi) AS avg_rssi
+        FROM ${sql.raw(`"${schemaName}"`)}.tag_rssi_buffer
+        WHERE sensed_at > ${cutoff10m}
+        GROUP BY tag_mac, gw_mac
+      `);
+
+      // 태그별로 가장 높은 avg_rssi 게이트웨이 찾기
+      const bestGwByTag = new Map<string, { gwMac: string; avgRssi: number }>();
+      for (const row of avgResults) {
+        const existing = bestGwByTag.get(row.tag_mac);
+        if (!existing || row.avg_rssi > existing.avgRssi) {
+          bestGwByTag.set(row.tag_mac, { gwMac: row.gw_mac, avgRssi: row.avg_rssi });
+        }
+      }
+
+      // assignedGwMac 업데이트 (버퍼에 데이터 없는 태그는 건드리지 않음)
+      const { tags } = getCompanyTables(companyId);
+      for (const [tagMac, { gwMac }] of bestGwByTag) {
+        await db
+          .update(tags)
+          .set({ assignedGwMac: gwMac })
+          .where(eq(tags.tagMac, tagMac));
+      }
+
+      if (bestGwByTag.size > 0) {
+        console.log(`[WS] 정확도 위치 결정 (${companyId}): ${bestGwByTag.size}개 태그 업데이트`);
+      }
+
+      // 30분 이상 된 buffer 레코드 삭제
+      await db.execute(sql`
+        DELETE FROM ${sql.raw(`"${schemaName}"`)}.tag_rssi_buffer
+        WHERE sensed_at < ${cutoff30m}
+      `);
+    }
+  } catch (error) {
+    console.error('[WS] 정확도 위치 결정 처리 오류:', error);
+  }
 }
 
 /**

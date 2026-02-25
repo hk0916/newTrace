@@ -1,0 +1,1 @@
+ALTER TABLE "companies" ADD COLUMN "location_mode" varchar(20) DEFAULT 'realtime' NOT NULL;

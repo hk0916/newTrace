@@ -7,6 +7,7 @@ export const companies = pgTable('companies', {
   name: varchar('name', { length: 255 }).notNull(),
   dashboardMapId: varchar('dashboard_map_id', { length: 50 }),
   timezone: varchar('timezone', { length: 50 }).default('browser').notNull(), // 'browser' | IANA timezone (e.g. 'Asia/Seoul')
+  locationMode: varchar('location_mode', { length: 20 }).default('realtime').notNull(), // 'realtime' | 'accuracy'
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });

@@ -3,7 +3,7 @@ dotenv.config({ path: '.env.local' });
 
 import http from 'node:http';
 import { WebSocketServer, WebSocket } from 'ws';
-import { handleMessage, handleDisconnect, connectedGateways } from './handlers';
+import { handleMessage, handleDisconnect, connectedGateways, processAccuracyLocations } from './handlers';
 import { buildGwInfoRequest } from './protocol';
 import { startCommandApi } from './command-api';
 import type { ClientInfo } from './types';
@@ -125,6 +125,10 @@ setInterval(() => {
     }, HEARTBEAT_TIMEOUT_MS);
   }
 }, HEARTBEAT_INTERVAL_MS);
+
+// 정확도 모드: 1분 주기로 태그 위치 결정 처리
+setInterval(processAccuracyLocations, 60_000);
+console.log('[WS Server] 정확도 위치 결정 타이머 등록 (60초 주기)');
 
 // 종료 처리 (한 번만 실행, 타임아웃 후 강제 종료)
 let shuttingDown = false;
