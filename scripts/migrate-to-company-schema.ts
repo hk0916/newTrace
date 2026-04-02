@@ -69,14 +69,18 @@ async function migrate() {
     console.log(`  gateway_status: ${gsCnt}개 이전 완료`);
 
     // ── tags ──────────────────────────────────────────────────
+    // assigned_gw_mac이 다른 회사 소속이면 NULL로 처리 (FK 위반 방지)
     await db.execute(sql`
       INSERT INTO ${sql.raw(`"${s}"`)}.tags
         (tag_mac, tag_name, assigned_gw_mac, report_interval,
          asset_type, description, is_active, registered_at, updated_at)
-      SELECT tag_mac, tag_name, assigned_gw_mac, report_interval,
-             asset_type, description, is_active, registered_at, updated_at
-      FROM public.tags
-      WHERE company_id = ${cid}
+      SELECT t.tag_mac, t.tag_name,
+             CASE WHEN g.gw_mac IS NOT NULL THEN t.assigned_gw_mac ELSE NULL END,
+             t.report_interval,
+             t.asset_type, t.description, t.is_active, t.registered_at, t.updated_at
+      FROM public.tags t
+      LEFT JOIN public.gateways g ON t.assigned_gw_mac = g.gw_mac AND g.company_id = ${cid}
+      WHERE t.company_id = ${cid}
       ON CONFLICT (tag_mac) DO NOTHING
     `);
     const [{ cnt: tagCnt }] = await db.execute<{ cnt: string }>(sql`
