@@ -1,36 +1,77 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# TraceTag Platform
 
-## Getting Started
+BLE 자산 추적 플랫폼 — Next.js 대시보드 + WebSocket 게이트웨이 서버
 
-First, run the development server:
+## 구성
+
+| 서비스 | 포트 | 설명 |
+|--------|------|------|
+| **nextjs** | 3000 | 웹 대시보드 + REST API |
+| **wsserver** | 8080 | BLE 게이트웨이 WebSocket 서버 |
+| **postgres** | 5432 | PostgreSQL 16 데이터베이스 |
+
+## 빠른 시작
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/hk0916/newTrace.git
+cd newTrace
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 환경 설정
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+`.env.docker` 파일을 서버 환경에 맞게 수정합니다.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+vi .env.docker
+```
 
-## Learn More
+### Docker 실행
 
-To learn more about Next.js, take a look at the following resources:
+> **중요:** 반드시 `--env-file .env.docker` 옵션을 사용해야 합니다.
+> docker-compose는 기본적으로 `.env` 파일만 읽기 때문에, 이 옵션 없이 실행하면 `.env.docker`의 설정(DB 비밀번호, DB명 등)이 적용되지 않고 기본값이 사용되어 DB 인증 오류가 발생합니다.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+# 빌드 및 실행 (최초 또는 코드 변경 시)
+docker compose --env-file .env.docker up -d --build
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+# 이후 실행
+docker compose --env-file .env.docker up -d
+```
 
-## Deploy on Vercel
+### 상태 확인
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+docker compose ps
+docker compose logs -f nextjs
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 운영 명령어
+
+```bash
+# 중지
+docker compose down
+
+# 재시작
+docker compose --env-file .env.docker restart
+
+# 특정 서비스만 재시작
+docker compose --env-file .env.docker restart nextjs
+
+# 코드 업데이트 후 재배포
+git pull origin main
+docker compose --env-file .env.docker up -d --build
+```
+
+## 개발 환경
+
+```bash
+npm install
+npm run dev         # Next.js 개발 서버 (localhost:3000)
+npm run ws:dev      # WebSocket 서버 (localhost:8080)
+```
+
+두 서버 모두 실행해야 전체 기능이 동작합니다.
+
+## 문서
+
+배포, 폐쇄망 설치, 데이터 관리, 문제 해결 등 상세 내용은 [DEPLOY.md](./DEPLOY.md)를 참고하세요.
