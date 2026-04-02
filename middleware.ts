@@ -1,9 +1,15 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 
-function requireLogin(req: { auth: { user?: unknown } | null; nextUrl: URL; url: string }) {
+function getBaseUrl(req: { headers: Headers; nextUrl: URL }) {
+  const host = req.headers.get('x-forwarded-host') || req.headers.get('host');
+  const proto = req.headers.get('x-forwarded-proto') || 'http';
+  return host ? `${proto}://${host}` : req.nextUrl.origin;
+}
+
+function requireLogin(req: { auth: { user?: unknown } | null; headers: Headers; nextUrl: URL; url: string }) {
   const pathname = req.nextUrl.pathname;
-  const loginUrl = new URL('/login', req.url);
+  const loginUrl = new URL('/login', getBaseUrl(req));
   loginUrl.searchParams.set('callbackUrl', pathname);
   return NextResponse.redirect(loginUrl);
 }
@@ -35,7 +41,7 @@ export default auth((req) => {
 
     // 임시 비밀번호 사용 중이면 비밀번호 변경 페이지로 강제 이동
     if (user?.mustChangePassword && pathname !== '/dashboard/change-password') {
-      return NextResponse.redirect(new URL('/dashboard/change-password', req.url));
+      return NextResponse.redirect(new URL('/dashboard/change-password', getBaseUrl(req)));
     }
   }
 
