@@ -74,9 +74,18 @@
     "gwSearchPlaceholder": "게이트웨이 검색 (이름, MAC, 위치)",
     "tagSearchPlaceholder": "태그 검색 (이름, MAC, 자산유형)",
     "refresh": "새로고침 ({countdown}s)",
-    "assetMap": "Asset Map",
+    "assetMap": "실시간 자산 위치",
+    "assetMapEmpty": "자산 맵을 등록하면 이곳에 실시간 위치가 표시됩니다.",
+    "assetMapEmptyAction": "자산 맵 등록하기",
+    "assetMapSummaryGw": "게이트웨이 {connected}/{total} 연결",
+    "assetMapSummaryTags": "추적 중 자산 {count}개",
+    "assetMapSummaryAlerts": "알림 {count}건",
+    "assetMapLastUpdate": "마지막 업데이트",
+    "assetOverview": "자산 현황",
     "showOnDashboard": "대시보드에 표시",
-    "settingFailed": "설정에 실패했습니다"
+    "settingFailed": "설정에 실패했습니다",
+    "showGatewayTable": "게이트웨이 상세 보기",
+    "hideGatewayTable": "게이트웨이 상세 접기"
   },
   "stats": {
     "totalGateways": "총 게이트웨이",
@@ -84,8 +93,11 @@
     "connectedGateways": "연결된 게이트웨이",
     "outOfTotal": "총 {count}개 중",
     "totalTags": "총 태그",
-    "alerts": "알림",
-    "lowVoltageTags": "저전압 태그"
+    "alerts": "활성 알림",
+    "lowVoltageTags": "저전압 태그",
+    "normalAssets": "정상 자산",
+    "normalRate": "정상 가동 {rate}%",
+    "alertDetail": "저전압 {lowVoltage}"
   },
   "register": {
     "title": "자산 등록",

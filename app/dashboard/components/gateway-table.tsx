@@ -50,16 +50,19 @@ interface GatewayTableProps {
   companyId?: string | null;
   canEdit?: boolean;
   onEditSuccess?: () => void;
+  defaultCollapsed?: boolean;
 }
 
 const PAGE_SIZE = 10;
 
-export function GatewayTable({ gateways, companyId, canEdit, onEditSuccess }: GatewayTableProps) {
+export function GatewayTable({ gateways, companyId, canEdit, onEditSuccess, defaultCollapsed }: GatewayTableProps) {
   const router = useRouter();
   const tGw = useTranslations('gateways');
   const tCommon = useTranslations('common');
+  const tDash = useTranslations('dashboard');
   const tTag = useTranslations('tags');
   const timezone = useTimezone();
+  const [collapsed, setCollapsed] = useState(defaultCollapsed ?? false);
   const [page, setPage] = useState(1);
   const totalPages = Math.ceil(gateways.length / PAGE_SIZE);
   const pagedGateways = gateways.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -157,7 +160,20 @@ export function GatewayTable({ gateways, companyId, canEdit, onEditSuccess }: Ga
 
   return (
     <>
-      <Table>
+      {defaultCollapsed && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setCollapsed((c) => !c)}
+          className="mb-2"
+        >
+          {collapsed
+            ? <><ChevronRight className="h-4 w-4 mr-1" />{tDash('showGatewayTable')}</>
+            : <><ChevronDown className="h-4 w-4 mr-1" />{tDash('hideGatewayTable')}</>
+          }
+        </Button>
+      )}
+      {collapsed ? null : <Table>
         <TableHeader>
           <TableRow>
             <TableHead className="w-10" />
@@ -291,9 +307,9 @@ export function GatewayTable({ gateways, companyId, canEdit, onEditSuccess }: Ga
             );
           })}
         </TableBody>
-      </Table>
+      </Table>}
 
-      {totalPages > 1 && (
+      {!collapsed && totalPages > 1 && (
         <div className="flex items-center justify-between px-2 py-3 border-t">
           <span className="text-sm text-muted-foreground">
             {gateways.length}개 중 {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, gateways.length)}

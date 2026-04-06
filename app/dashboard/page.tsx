@@ -76,7 +76,7 @@ export default async function DashboardPage({
   const stats = {
     gateways: { total: gwStats.total, active: gwStats.active, connected: connStats.connected },
     tags: { total: tagStats.total, active: tagStats.active },
-    alerts: { lowVoltage: 0 },
+    alerts: { lowVoltage: 0, total: 0 },
   };
 
   // 대시보드에 표시 선택된 자산맵만 조회
@@ -211,6 +211,22 @@ export default async function DashboardPage({
 
   const t = await getTranslations('dashboard');
 
+  // 알림 수 계산 (저전압 태그)
+  const lowVoltageCount = tagsWithSensing.filter((t) => {
+    const v = t.latestSensing?.voltage ? parseFloat(String(t.latestSensing.voltage)) : null;
+    return v !== null && v < 2.5;
+  }).length;
+  stats.alerts.lowVoltage = lowVoltageCount;
+  stats.alerts.total = lowVoltageCount;
+
+  // 맵 요약 데이터 (하단 summary bar 용)
+  const mapSummary = {
+    gwConnected: connStats.connected,
+    gwTotal: gwStats.total,
+    trackedTags: mapsWithPlacements.reduce((sum, m) => sum + m.placements.reduce((s, p) => s + p.tagCount, 0), 0),
+    alertCount: stats.alerts.total,
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-2">
@@ -221,8 +237,33 @@ export default async function DashboardPage({
         <DashboardRefresh />
       </div>
 
+      {/* 1순위: 자산 위치 맵 (항상 최상단) */}
+      <DashboardMapPreview
+        maps={mapsWithPlacements}
+        companyId={cid}
+        canEdit={session!.user.role === 'super' || session!.user.role === 'admin'}
+        summary={mapSummary}
+      />
+
+      {/* 2순위: 통계 + 알림 카드 */}
       <StatsCards stats={stats} />
 
+      {/* 3순위: 자산(태그) 현황 */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <h2 className="text-lg font-semibold">{t('assetOverview')}</h2>
+          <Suspense fallback={null}>
+            <TableFilter prefix="tag" searchPlaceholder={t('tagSearchPlaceholder')} />
+          </Suspense>
+        </div>
+        <TagTable
+          tags={tagsWithSensing}
+          canEdit={session!.user.role === 'super' || session!.user.role === 'admin'}
+          companyId={cid}
+        />
+      </div>
+
+      {/* 4순위: 게이트웨이 (접힘 가능) */}
       <div className="space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <h2 className="text-lg font-semibold">{t('gateway')}</h2>
@@ -237,28 +278,9 @@ export default async function DashboardPage({
           }))}
           companyId={cid}
           canEdit={session!.user.role === 'super' || session!.user.role === 'admin'}
+          defaultCollapsed
         />
       </div>
-
-      <div className="space-y-4">
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <h2 className="text-lg font-semibold">{t('tag')}</h2>
-          <Suspense fallback={null}>
-            <TableFilter prefix="tag" searchPlaceholder={t('tagSearchPlaceholder')} />
-          </Suspense>
-        </div>
-        <TagTable
-          tags={tagsWithSensing}
-          canEdit={session!.user.role === 'super' || session!.user.role === 'admin'}
-          companyId={cid}
-        />
-      </div>
-
-      <DashboardMapPreview
-        maps={mapsWithPlacements}
-        companyId={cid}
-        canEdit={session!.user.role === 'super' || session!.user.role === 'admin'}
-      />
     </div>
   );
 }

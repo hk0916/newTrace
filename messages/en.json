@@ -74,9 +74,18 @@
     "gwSearchPlaceholder": "Search gateways (name, MAC, location)",
     "tagSearchPlaceholder": "Search tags (name, MAC, asset type)",
     "refresh": "Refresh ({countdown}s)",
-    "assetMap": "Asset Map",
+    "assetMap": "Live Asset Location",
+    "assetMapEmpty": "Register an asset map to display live locations here.",
+    "assetMapEmptyAction": "Register Asset Map",
+    "assetMapSummaryGw": "Gateways {connected}/{total} connected",
+    "assetMapSummaryTags": "{count} assets tracked",
+    "assetMapSummaryAlerts": "{count} alerts",
+    "assetMapLastUpdate": "Last update",
+    "assetOverview": "Asset Overview",
     "showOnDashboard": "Show on Dashboard",
-    "settingFailed": "Setting failed"
+    "settingFailed": "Setting failed",
+    "showGatewayTable": "Show gateway details",
+    "hideGatewayTable": "Hide gateway details"
   },
   "stats": {
     "totalGateways": "Total Gateways",
@@ -84,8 +93,11 @@
     "connectedGateways": "Connected Gateways",
     "outOfTotal": "out of {count}",
     "totalTags": "Total Tags",
-    "alerts": "Alerts",
-    "lowVoltageTags": "Low voltage tags"
+    "alerts": "Active Alerts",
+    "lowVoltageTags": "Low voltage tags",
+    "normalAssets": "Normal Assets",
+    "normalRate": "{rate}% operational",
+    "alertDetail": "Low voltage {lowVoltage}"
   },
   "register": {
     "title": "Register Assets",

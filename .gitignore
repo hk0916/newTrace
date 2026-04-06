@@ -45,6 +45,9 @@ yarn-error.log*
 # claude code tips
 claude-code-tips/
 
+# docs (internal planning documents)
+/docs/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
