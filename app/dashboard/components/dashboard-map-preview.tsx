@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { GatewayPlacement } from '../asset-map/components/gateway-placement';
-import { MapPin, Wifi, Tag, AlertTriangle, Map } from 'lucide-react';
+import { MapPin, Wifi, Tag, AlertTriangle } from 'lucide-react';
 
 interface MapPreviewData {
   id: string;
@@ -43,29 +43,40 @@ interface DashboardMapPreviewProps {
   summary?: MapSummary;
 }
 
+const MAP_MAX_HEIGHT = 320;
+
 function MapCard({ map, isActive }: { map: MapPreviewData; isActive: boolean }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
-  const aspectRatio = Math.min((map.imageHeight / map.imageWidth) * 100, 65);
 
   const noop = () => {};
 
   if (!isActive) return null;
 
+  // 이미지 비율에 맞춰 컨테이너 크기 계산 (이미지와 게이트웨이 좌표 일치)
+  const imgAspect = map.imageWidth / map.imageHeight;
+
   return (
     <div
-      className="relative w-full border rounded-lg overflow-hidden bg-muted/30 cursor-pointer"
+      className="flex items-center justify-center border rounded-lg overflow-hidden bg-muted/30 cursor-pointer"
+      style={{ height: `${MAP_MAX_HEIGHT}px` }}
       onClick={() => router.push('/dashboard/asset-map')}
     >
       <div
         ref={containerRef}
-        className="relative w-full"
-        style={{ paddingTop: `${aspectRatio}%`, minHeight: '300px' }}
+        className="relative"
+        style={{
+          width: `min(100%, ${MAP_MAX_HEIGHT * imgAspect}px)`,
+          height: `min(${MAP_MAX_HEIGHT}px, calc(100vw / ${imgAspect}))`,
+          maxWidth: '100%',
+          maxHeight: `${MAP_MAX_HEIGHT}px`,
+          aspectRatio: `${map.imageWidth} / ${map.imageHeight}`,
+        }}
       >
         <img
           src={map.imagePath}
           alt={map.name}
-          className="absolute inset-0 w-full h-full object-contain"
+          className="absolute inset-0 w-full h-full object-fill rounded"
           draggable={false}
         />
         {map.placements.map((p) => (
