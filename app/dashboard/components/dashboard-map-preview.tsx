@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Card, CardContent } from '@/components/ui/card';
@@ -43,52 +43,58 @@ interface DashboardMapPreviewProps {
   summary?: MapSummary;
 }
 
-const MAP_MAX_HEIGHT = 320;
+const MAP_HEIGHT = 320;
 
-function MapCard({ map, isActive }: { map: MapPreviewData; isActive: boolean }) {
+function MapCard({ map, isSingle }: { map: MapPreviewData; isSingle: boolean }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
   const noop = () => {};
-
-  if (!isActive) return null;
-
-  // 이미지 비율에 맞춰 컨테이너 크기 계산 (이미지와 게이트웨이 좌표 일치)
   const imgAspect = map.imageWidth / map.imageHeight;
 
   return (
     <div
-      className="flex items-center justify-center border rounded-lg overflow-hidden bg-muted/30 cursor-pointer"
-      style={{ height: `${MAP_MAX_HEIGHT}px` }}
+      className="flex-shrink-0 flex flex-col rounded-lg border overflow-hidden bg-muted/30 cursor-pointer hover:border-foreground/20 transition-colors"
+      style={{
+        width: isSingle ? '100%' : `max(360px, ${MAP_HEIGHT * imgAspect}px)`,
+        height: `${MAP_HEIGHT}px`,
+      }}
       onClick={() => router.push('/dashboard/asset-map')}
     >
-      <div
-        ref={containerRef}
-        className="relative"
-        style={{
-          width: `min(100%, ${MAP_MAX_HEIGHT * imgAspect}px)`,
-          height: `min(${MAP_MAX_HEIGHT}px, calc(100vw / ${imgAspect}))`,
-          maxWidth: '100%',
-          maxHeight: `${MAP_MAX_HEIGHT}px`,
-          aspectRatio: `${map.imageWidth} / ${map.imageHeight}`,
-        }}
-      >
-        <img
-          src={map.imagePath}
-          alt={map.name}
-          className="absolute inset-0 w-full h-full object-fill rounded"
-          draggable={false}
-        />
-        {map.placements.map((p) => (
-          <GatewayPlacement
-            key={p.id}
-            placement={{ ...p, color: p.color ?? map.gatewayAreaColor ?? 'amber' }}
-            containerRef={containerRef}
-            onUpdate={noop}
-            onRemove={noop}
-            isEditing={false}
+      {/* 맵 이름 라벨 */}
+      <div className="flex items-center gap-1.5 px-3 py-1.5 border-b bg-muted/50 text-xs font-medium text-muted-foreground">
+        <MapPin className="h-3 w-3" />
+        {map.name}
+      </div>
+      {/* 맵 영역 */}
+      <div className="flex-1 flex items-center justify-center overflow-hidden">
+        <div
+          ref={containerRef}
+          className="relative"
+          style={{
+            width: `min(100%, ${(MAP_HEIGHT - 30) * imgAspect}px)`,
+            maxWidth: '100%',
+            maxHeight: `${MAP_HEIGHT - 30}px`,
+            aspectRatio: `${map.imageWidth} / ${map.imageHeight}`,
+          }}
+        >
+          <img
+            src={map.imagePath}
+            alt={map.name}
+            className="absolute inset-0 w-full h-full object-fill rounded"
+            draggable={false}
           />
-        ))}
+          {map.placements.map((p) => (
+            <GatewayPlacement
+              key={p.id}
+              placement={{ ...p, color: p.color ?? map.gatewayAreaColor ?? 'amber' }}
+              containerRef={containerRef}
+              onUpdate={noop}
+              onRemove={noop}
+              isEditing={false}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -97,9 +103,7 @@ function MapCard({ map, isActive }: { map: MapPreviewData; isActive: boolean }) 
 export function DashboardMapPreview({ maps, summary }: DashboardMapPreviewProps) {
   const tDash = useTranslations('dashboard');
   const router = useRouter();
-  const [activeMapIndex, setActiveMapIndex] = useState(0);
 
-  // 빈 상태: 맵이 없을 때도 영역 표시
   if (maps.length === 0) {
     return (
       <Card>
@@ -118,39 +122,39 @@ export function DashboardMapPreview({ maps, summary }: DashboardMapPreviewProps)
     );
   }
 
+  const isSingle = maps.length === 1;
+
   return (
     <Card className="overflow-hidden">
-      {/* Header: 제목 + 맵 탭 */}
+      {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b">
         <h2 className="text-base font-semibold flex items-center gap-2">
           <MapPin className="h-4 w-4" />
           {tDash('assetMap')}
         </h2>
-        {maps.length > 1 && (
-          <div className="flex gap-1 bg-muted rounded-lg p-0.5">
-            {maps.map((map, i) => (
-              <button
-                key={map.id}
-                type="button"
-                onClick={() => setActiveMapIndex(i)}
-                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                  i === activeMapIndex
-                    ? 'bg-background text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {map.name}
-              </button>
-            ))}
-          </div>
+        {!isSingle && (
+          <span className="text-xs text-muted-foreground">
+            ← 스크롤 →
+          </span>
         )}
       </div>
 
-      {/* 맵 영역 */}
+      {/* 맵 카드: 1개면 풀폭, 여러 개면 가로 스크롤 */}
       <CardContent className="p-2">
-        {maps.map((map, i) => (
-          <MapCard key={map.id} map={map} isActive={i === activeMapIndex} />
-        ))}
+        <div
+          className={
+            isSingle
+              ? ''
+              : 'flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory'
+          }
+          style={isSingle ? undefined : { scrollbarWidth: 'thin' }}
+        >
+          {maps.map((map) => (
+            <div key={map.id} className={isSingle ? '' : 'snap-start'}>
+              <MapCard map={map} isSingle={isSingle} />
+            </div>
+          ))}
+        </div>
       </CardContent>
 
       {/* Summary Bar */}
