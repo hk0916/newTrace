@@ -6,7 +6,7 @@ import { signOut } from 'next-auth/react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { LayoutDashboard, Radio, Tag, AlertTriangle, LogOut, Building2, CirclePlus, MapPin, Settings2, Settings } from 'lucide-react';
+import { LayoutDashboard, Radio, Tag, AlertTriangle, LogOut, Building2, CirclePlus, MapPin, Settings2, Settings, Battery } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { LocaleSwitcher } from '@/components/locale-switcher';
 import { TimezoneProvider } from '../contexts/timezone-context';
@@ -30,6 +30,7 @@ const navKeys = [
   { href: '/dashboard/tags', key: 'tags', icon: Tag },
   { href: '/dashboard/asset-map', key: 'assetMap', icon: MapPin },
   { href: '/dashboard/alerts', key: 'alerts', icon: AlertTriangle },
+  { href: '/dashboard/battery-calculator', key: 'batteryCalc', icon: Battery },
   { href: '/dashboard/settings', key: 'settings', icon: Settings },
 ] as const;
 
